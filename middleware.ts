@@ -6,6 +6,9 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const subdomain = hostname.split('.')[0]
   const mainDomain = 'shipfaster.tech'
+  console.log('subdomain', subdomain)
+  console.log('hostname', hostname)
+  console.log('url', url)
 
   // Skip middleware for static files and API routes
   if (
@@ -30,10 +33,20 @@ export async function middleware(request: NextRequest) {
 
   // Handle subdomain routing
   if (subdomain && subdomain !== 'www') {
+    
     // Check if we're already on a product path to prevent redirect loops
     if (!url.pathname.startsWith('/product/')) {
-      url.pathname = `/product/${subdomain}${url.pathname}`
-      return NextResponse.rewrite(url)
+      // Clone the URL to avoid modifying the original
+      const newUrl = new URL(url)
+      newUrl.pathname = `/product/${subdomain}${url.pathname}`
+      
+      // Add subdomain to headers for the API route
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set('x-subdomain', subdomain)
+      console.log('newUrl', newUrl)
+      return NextResponse.rewrite(newUrl, {
+        headers: requestHeaders,
+      })
     }
   }
 
