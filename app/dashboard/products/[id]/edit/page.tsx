@@ -4,13 +4,21 @@ import { cookies } from "next/headers"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { ProductEditForm } from "@/components/dashboard/product-edit-form"
-import { getProductImages } from "@/lib/supabase/storage"
+import { getProductImages } from '@/lib/supabase/server-storage'
 import type { Database } from "@/lib/database.types"
 
 interface ProductEditPageProps {
   params: {
     id: string
   }
+}
+
+interface ProductImage {
+  name: string
+  path: string
+  url: string
+  size?: number
+  createdAt?: string
 }
 
 export default async function ProductEditPage({ params }: ProductEditPageProps) {
@@ -40,9 +48,9 @@ export default async function ProductEditPage({ params }: ProductEditPageProps) 
   }
 
   // Get product images
-  let productImages = []
+  let productImages: ProductImage[] = []
   try {
-    productImages = await getProductImages(params.id)
+    productImages = await getProductImages(params.id, userId)
   } catch (error) {
     console.error("Error fetching product images:", error)
   }

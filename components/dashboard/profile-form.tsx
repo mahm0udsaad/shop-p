@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClientSupabaseClient } from "@/lib/supabase/client"
+import { createClient } from '@/lib/supabase/client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +23,7 @@ export function ProfileForm({ userId, initialProfile }: ProfileFormProps) {
   const [fullName, setFullName] = useState(initialProfile?.full_name || "")
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClientSupabaseClient()
+  const supabase = createClient()
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()

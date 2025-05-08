@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getServerSession, getServerUserProfile, createServerSupabaseClient } from "@/lib/supabase/server"
+import { getServerSession, getServerUserProfile, createClient } from "@/lib/supabase/server"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { ProfileForm } from "@/components/dashboard/profile-form"
@@ -17,7 +17,7 @@ export default async function ProfilePage() {
 
   if (!profile) {
     // Create a profile if it doesn't exist
-    const supabase = createServerSupabaseClient()
+    const supabase = await createClient()
     await supabase.from("profiles").insert({
       id: session.user.id,
       email: session.user.email,
