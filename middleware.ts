@@ -7,6 +7,16 @@ export async function middleware(request: NextRequest) {
   const subdomain = hostname.split('.')[0]
   const mainDomain = 'shipfaster.tech'
 
+  // Skip middleware for static files and API routes
+  if (
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/static') ||
+    url.pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
+
   // Handle auth and session first
   const supabaseResponse = await updateSession(request)
   if (supabaseResponse.status !== 200) {
