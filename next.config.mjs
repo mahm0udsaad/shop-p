@@ -15,6 +15,22 @@ const nextConfig = {
     ],
   },
   poweredByHeader: false,
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              value: '(?<subdomain>.*).shipfaster.tech',
+            },
+          ],
+          destination: '/product/:subdomain/:path*',
+        },
+      ],
+    }
+  },
 }
 
 export default nextConfig

@@ -1,30 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  // Skip subdomain handling for localhost
-  const host = request.headers.get('host')
-  const isLocalhost = host?.includes('localhost')
-  
-  // Handle subdomains for shipfaster.tech
-  if (!isLocalhost && host?.includes('.shipfaster.tech')) {
-    // Extract subdomain from host
-    const subdomain = host.split('.shipfaster.tech')[0]
-    
-    // Skip processing if this is the main domain without subdomain or www
-    if (subdomain && !['www', ''].includes(subdomain)) {
-      // Check if we're already on a showcase path to prevent redirect loops
-      const pathname = request.nextUrl.pathname
-      if (!pathname.startsWith('/showcase/')) {
-        // For subdomain access, rewrite to /showcase/[subdomain]
-        const showcaseUrl = new URL(`/showcase/${subdomain}`, request.url)
-        return NextResponse.rewrite(showcaseUrl)
-      }
-    }
+export function middleware(request: NextRequest) {
+  const url = request.nextUrl
+  const hostname = request.headers.get('host') || ''
+  const subdomain = hostname.split('.')[0]
+  const mainDomain = 'shipfaster.tech'
+
+  // Skip middleware for main domain
+  if (hostname === mainDomain) {
+    return NextResponse.next()
   }
-  
-  // Continue with standard session handling
-  return await updateSession(request)
+
+  // Handle subdomain routing
+  if (subdomain && subdomain !== 'www') {
+    // Rewrite the URL to the product page
+    url.pathname = `/product/${subdomain}${url.pathname}`
+    return NextResponse.rewrite(url)
+  }
+
+  return NextResponse.next()
 }
 
 async function updateSession(request: NextRequest) {
@@ -88,22 +83,13 @@ async function updateSession(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Include all routes that should be protected or have auth redirects
-    "/dashboard/:path*", 
-    "/login", 
-    "/signup", 
-    "/forgot-password", 
-    "/reset-password",
-    // Capture all hostnames with the shipfaster.tech domain
-    // except for localhost and except showcase routes to prevent loops
-    {
-      source: "/((?!api|_next|showcase|login|dashboard|signup|forgot-password|reset-password).*)",
-      has: [
-        {
-          type: "host",
-          value: ".*\\.shipfaster\\.tech",
-        },
-      ],
-    },
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
