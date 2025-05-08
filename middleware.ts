@@ -6,9 +6,7 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const subdomain = hostname.split('.')[0]
   const mainDomain = 'shipfaster.tech'
-  console.log('subdomain', subdomain)
-  console.log('hostname', hostname)
-  console.log('url', url)
+ 
 
   // Skip middleware for static files and API routes
   if (
@@ -32,31 +30,20 @@ export async function middleware(request: NextRequest) {
 
   // Handle subdomain routing
   if (subdomain && subdomain !== 'www') {
-    // Check if we're already on a product path to prevent redirect loops
-    if (!url.pathname.startsWith('/product/')) {
-      // Create new URL using the original host
-      const newUrl = new URL(`https://${hostname}${url.pathname}`)
-      // Only add the subdomain to the path if it's not already there
-      if (!url.pathname.includes(subdomain)) {
-        newUrl.pathname = `/product/${subdomain}${url.pathname}`
-      }
-      
-      // Add subdomain to headers for the API route
-      const requestHeaders = new Headers(request.headers)
-      requestHeaders.set('x-subdomain', subdomain)
-      
-      console.log('newUrl', newUrl)
-      return NextResponse.rewrite(newUrl, {
-        headers: requestHeaders,
-      })
-    } else {
-      // If we're already on a product path, just add the subdomain header
-      const requestHeaders = new Headers(request.headers)
-      requestHeaders.set('x-subdomain', subdomain)
-      return NextResponse.next({
-        headers: requestHeaders,
-      })
-    }
+    console.log('subdomain', subdomain)
+    console.log('hostname', hostname)
+    console.log('url', url)
+    // Create new URL for internal rewrite
+    const newUrl = new URL(`https://${mainDomain}/product/${subdomain}${url.pathname}`)
+    
+    // Add subdomain to headers for the API route
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-subdomain', subdomain)
+    
+    console.log('Done')
+    return NextResponse.rewrite(newUrl, {
+      headers: requestHeaders,
+    })
   }
 
   return supabaseResponse
