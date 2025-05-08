@@ -2,48 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Get the host from headers
-  const host = request.headers.get('host') || ''
-  
-  // Create a debug header to track middleware processing
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-middleware-invoke', 'true')
-  
-  // Skip subdomain handling for localhost or specific paths
-  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1')
-  const pathname = request.nextUrl.pathname
-  
-  // Debug logging for development
-  console.log(`Middleware processing: ${host} ${pathname}`)
-  
-  // Skip processing if already on internal paths
-  if (pathname.startsWith('/api/') || 
-      pathname.startsWith('/_next/') || 
-      pathname.startsWith('/showcase/')) {
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
-  }
+  // Skip subdomain handling for localhost
+  const host = request.headers.get('host')
+  const isLocalhost = host?.includes('localhost')
   
   // Handle subdomains for shipfaster.tech
-  if (!isLocalhost && host.includes('.shipfaster.tech')) {
+  if (!isLocalhost && host?.includes('.shipfaster.tech')) {
     // Extract subdomain from host
     const subdomain = host.split('.shipfaster.tech')[0]
     
-    // Skip processing if this is the main domain or www
+    // Skip processing if this is the main domain without subdomain or www
     if (subdomain && !['www', ''].includes(subdomain)) {
-      // For subdomain access, rewrite to /showcase/[subdomain]
-      const showcaseUrl = new URL(`/showcase/${subdomain}`, request.url)
-      console.log(`Rewriting to: ${showcaseUrl.toString()}`)
-      requestHeaders.set('x-middleware-rewrite', showcaseUrl.toString())
-      
-      return NextResponse.rewrite(showcaseUrl, {
-        request: {
-          headers: requestHeaders,
-        },
-      })
+      // Check if we're already on a showcase path to prevent redirect loops
+      const pathname = request.nextUrl.pathname
+      if (!pathname.startsWith('/showcase/')) {
+        // For subdomain access, rewrite to /showcase/[subdomain]
+        const showcaseUrl = new URL(`/showcase/${subdomain}`, request.url)
+        return NextResponse.rewrite(showcaseUrl)
+      }
     }
   }
   
@@ -52,14 +28,8 @@ export async function middleware(request: NextRequest) {
 }
 
 async function updateSession(request: NextRequest) {
-  // Create a new headers object with all the original headers
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-middleware-auth', 'true')
-  
   let supabaseResponse = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
+    request,
   })
 
   const supabase = createServerClient(
@@ -73,9 +43,7 @@ async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
-            request: {
-              headers: requestHeaders,
-            },
+            request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
