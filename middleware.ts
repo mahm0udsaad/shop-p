@@ -14,8 +14,7 @@ export async function middleware(request: NextRequest) {
   if (
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/static') ||
-    url.pathname.includes('.')
+    url.pathname.startsWith('/static')
   ) {
     return NextResponse.next()
   }
@@ -45,6 +44,13 @@ export async function middleware(request: NextRequest) {
       
       console.log('newUrl', newUrl)
       return NextResponse.rewrite(newUrl, {
+        headers: requestHeaders,
+      })
+    } else {
+      // If we're already on a product path, just add the subdomain header
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set('x-subdomain', subdomain)
+      return NextResponse.next({
         headers: requestHeaders,
       })
     }
