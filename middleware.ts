@@ -35,8 +35,8 @@ export async function middleware(request: NextRequest) {
   if (subdomain && subdomain !== 'www') {
     // Check if we're already on a product path to prevent redirect loops
     if (!url.pathname.startsWith('/product/')) {
-      // Create new URL while preserving the original domain
-      const newUrl = new URL(request.url)
+      // Create new URL using the original host
+      const newUrl = new URL(`https://${hostname}${url.pathname}`)
       newUrl.pathname = `/product/${subdomain}${url.pathname}`
       
       // Add subdomain to headers for the API route
