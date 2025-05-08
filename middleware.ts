@@ -36,7 +36,10 @@ export async function middleware(request: NextRequest) {
     if (!url.pathname.startsWith('/product/')) {
       // Create new URL using the original host
       const newUrl = new URL(`https://${hostname}${url.pathname}`)
-      newUrl.pathname = `/product/${subdomain}${url.pathname}`
+      // Only add the subdomain to the path if it's not already there
+      if (!url.pathname.includes(subdomain)) {
+        newUrl.pathname = `/product/${subdomain}${url.pathname}`
+      }
       
       // Add subdomain to headers for the API route
       const requestHeaders = new Headers(request.headers)
