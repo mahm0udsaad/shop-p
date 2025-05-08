@@ -31,6 +31,20 @@ const nextConfig = {
       ],
     }
   },
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://shipfaster.tech' : undefined,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig
