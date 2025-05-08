@@ -1,25 +1,33 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
   const subdomain = hostname.split('.')[0]
   const mainDomain = 'shipfaster.tech'
 
-  // Skip middleware for main domain
+  // Handle auth and session first
+  const supabaseResponse = await updateSession(request)
+  if (supabaseResponse.status !== 200) {
+    return supabaseResponse
+  }
+
+  // Skip subdomain handling for main domain
   if (hostname === mainDomain) {
-    return NextResponse.next()
+    return supabaseResponse
   }
 
   // Handle subdomain routing
   if (subdomain && subdomain !== 'www') {
-    // Rewrite the URL to the product page
-    url.pathname = `/product/${subdomain}${url.pathname}`
-    return NextResponse.rewrite(url)
+    // Check if we're already on a product path to prevent redirect loops
+    if (!url.pathname.startsWith('/product/')) {
+      url.pathname = `/product/${subdomain}${url.pathname}`
+      return NextResponse.rewrite(url)
+    }
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 async function updateSession(request: NextRequest) {
