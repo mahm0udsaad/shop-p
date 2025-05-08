@@ -4,49 +4,51 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
+  
+  // Extract subdomain more reliably
   const subdomain = hostname.split('.')[0]
-  const mainDomain = 'shipfaster.tech'
- 
+  const isSubdomain = hostname.endsWith('.shipfaster.tech') && !['www', 'shipfaster'].includes(subdomain)
 
-  // Skip middleware for static files and API routes
-  if (
-    url.pathname.startsWith('/_next') ||
-    url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/static')
-  ) {
+  // Skip static assets and API routes
+  if (url.pathname.startsWith('/_next') || 
+      url.pathname.startsWith('/api') ||
+      url.pathname.includes('.')) {
     return NextResponse.next()
   }
 
-  // Handle auth and session first
-  const supabaseResponse = await updateSession(request)
-  if (supabaseResponse.status !== 200) {
-    return supabaseResponse
-  }
-
-  // Skip subdomain handling for main domain
-  if (hostname === mainDomain) {
-    return supabaseResponse
-  }
-
-  // Handle subdomain routing
-  if (subdomain && subdomain !== 'www') {
-    console.log('subdomain', subdomain)
-    console.log('hostname', hostname)
-    console.log('url', url)
-    // Create new URL for internal rewrite
-    const newUrl = new URL(`https://${mainDomain}/product/${subdomain}${url.pathname}`)
+  // Handle subdomains
+  if (isSubdomain) {
+    console.log(`Subdomain detected: ${subdomain}, path: ${url.pathname}`)
     
-    // Add subdomain to headers for the API route
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-subdomain', subdomain)
+    // For the root path, redirect to the product page
+    if (url.pathname === '/') {
+      // Create the URL for the rewrite
+      const rewriteUrl = new URL(`/product/${subdomain}`, request.url)
+      
+      console.log(`Rewriting to: ${rewriteUrl.pathname}`)
+      
+      return NextResponse.rewrite(rewriteUrl, {
+        headers: new Headers({
+          'x-subdomain': subdomain,
+          'Cache-Control': 's-maxage=3600, stale-while-revalidate'
+        })
+      })
+    }
     
-    console.log('Done')
-    return NextResponse.rewrite(newUrl, {
-      headers: requestHeaders,
+    // For specific paths on the subdomain, rewrite but preserve the path
+    const newUrl = new URL(`${url.pathname}`, request.url)
+    
+    // Add the subdomain header to all requests
+    return NextResponse.next({
+      headers: new Headers({
+        'x-subdomain': subdomain,
+        'Cache-Control': 's-maxage=3600, stale-while-revalidate'
+      })
     })
   }
 
-  return supabaseResponse
+  // Existing auth logic
+  return await updateSession(request)
 }
 
 async function updateSession(request: NextRequest) {
@@ -75,14 +77,11 @@ async function updateSession(request: NextRequest) {
     }
   )
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
   // IMPORTANT: DO NOT REMOVE auth.getUser()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  
   // Define protected and auth routes
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||

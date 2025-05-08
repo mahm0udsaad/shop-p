@@ -15,22 +15,7 @@ const nextConfig = {
     ],
   },
   poweredByHeader: false,
-  async rewrites() {
-    return {
-      beforeFiles: [
-        {
-          source: '/:path*',
-          has: [
-            {
-              type: 'host',
-              value: '(?<subdomain>.*).shipfaster.tech',
-            },
-          ],
-          destination: '/product/:subdomain/:path*',
-        },
-      ],
-    }
-  },
+  // Remove the rewrites section as we're handling this in middleware
   assetPrefix: process.env.NODE_ENV === 'production' ? 'https://shipfaster.tech' : undefined,
   async headers() {
     return [
