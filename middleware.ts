@@ -11,10 +11,15 @@ export async function middleware(request: NextRequest) {
     // Extract subdomain from host
     const subdomain = host.split('.shipfaster.tech')[0]
     
-    if (subdomain) {
-      // For subdomain access, redirect to /showcase/[subdomain]
-      const showcaseUrl = new URL(`/showcase/${subdomain}`, request.url)
-      return NextResponse.rewrite(showcaseUrl)
+    // Skip processing if this is the main domain without subdomain or www
+    if (subdomain && !['www', ''].includes(subdomain)) {
+      // Check if we're already on a showcase path to prevent redirect loops
+      const pathname = request.nextUrl.pathname
+      if (!pathname.startsWith('/showcase/')) {
+        // For subdomain access, rewrite to /showcase/[subdomain]
+        const showcaseUrl = new URL(`/showcase/${subdomain}`, request.url)
+        return NextResponse.rewrite(showcaseUrl)
+      }
     }
   }
   
@@ -90,9 +95,9 @@ export const config = {
     "/forgot-password", 
     "/reset-password",
     // Capture all hostnames with the shipfaster.tech domain
-    // except for localhost
+    // except for localhost and except showcase routes to prevent loops
     {
-      source: "/((?!localhost).*)",
+      source: "/((?!api|_next|showcase|login|dashboard|signup|forgot-password|reset-password).*)",
       has: [
         {
           type: "host",
