@@ -33,16 +33,16 @@ export async function middleware(request: NextRequest) {
 
   // Handle subdomain routing
   if (subdomain && subdomain !== 'www') {
-    
     // Check if we're already on a product path to prevent redirect loops
     if (!url.pathname.startsWith('/product/')) {
-      // Clone the URL to avoid modifying the original
-      const newUrl = new URL(url)
+      // Create new URL while preserving the original domain
+      const newUrl = new URL(request.url)
       newUrl.pathname = `/product/${subdomain}${url.pathname}`
       
       // Add subdomain to headers for the API route
       const requestHeaders = new Headers(request.headers)
       requestHeaders.set('x-subdomain', subdomain)
+      
       console.log('newUrl', newUrl)
       return NextResponse.rewrite(newUrl, {
         headers: requestHeaders,
