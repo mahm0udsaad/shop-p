@@ -27,7 +27,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="w-full py-12 sm:py-24 l xl:py-48 bg-gradient-to-b from-background to-[#FED8B1]/20">
+    <section className="w-full py-12 sm:py-24 l bg-gradient-to-b from-background to-[#FED8B1]/20">
       <motion.div className="container px-4 md:px-6" initial="hidden" animate="visible" variants={fadeIn}>
         <div className="max-w-3xl mx-auto text-center">
           <motion.div className="flex flex-col items-center justify-center space-y-6" variants={fadeIn}>

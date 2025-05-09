@@ -25,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <head>
         <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
+        <script defer src="https://analytics.shipfaster.tech/script.js" data-website-id="c47b9941-16f4-4778-9791-6965b1ed9a67"></script>
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>

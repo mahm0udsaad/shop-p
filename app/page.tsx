@@ -1,5 +1,3 @@
-"use client"
-
 import { Header } from "@/components/home/header"
 import { HeroSection } from "@/components/home/hero-section"
 import { TrustedBrandsSection } from "@/components/home/trusted-brands-section"
