@@ -3,37 +3,15 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { nanoid } from "nanoid"
-
-// Helper function to generate slug
-async function generateUniqueSlug(name: string, supabase: any): Promise<string> {
-  const baseSlug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with hyphens
-    .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
-
-  // Check if slug exists
-  const { data: existingProduct } = await supabase
-    .from("products")
-    .select("slug")
-    .eq("slug", baseSlug)
-    .single()
-
-  if (!existingProduct) {
-    return baseSlug
-  }
-
-  // If slug exists, append a unique identifier
-  return `${baseSlug}-${nanoid(6)}`
-}
+import { createUmamiWebsite, getWebsiteByDomain, setWebsiteSharing } from "@/app/actions/umami"
 
 export async function createProduct(formData: FormData, userId?: string) {
   try {
     const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
 
-  // If no session and no userId provided, return error
-  if (!session && !userId) {
+    // If no session and no userId provided, return error
+    if (!session && !userId) {
       throw new Error("Authentication required")
     }
 
@@ -50,24 +28,70 @@ export async function createProduct(formData: FormData, userId?: string) {
       : []
 
     const name = formData.get("name") as string
+    const subdomain = formData.get("domain") as string
+    
+    // Validate required fields with more detailed error messages
+    const missingFields = []
+    if (!name) missingFields.push("name")
+    if (!formData.get("description")) missingFields.push("description")
+    if (!subdomain) missingFields.push("domain")
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(", ")}`)
+    }
+    
+    // Create or find an analytics ID for this subdomain in Umami
+    let analyticsId: string | null = null
+    let shareId: string | null = null
+    
+    try {
+      // Set the full domain for the analytics
+      const fullDomain = `${subdomain}.shipfaster.tech`
+      
+      // Check if a website already exists for this domain
+      let umamiWebsite = await getWebsiteByDomain(fullDomain)
+      
+      if (!umamiWebsite) {
+        // Create new website in Umami
+        umamiWebsite = await createUmamiWebsite(
+          `${name} (${subdomain})`, 
+          fullDomain
+        )
+      }
+      
+      if (umamiWebsite) {
+        analyticsId = umamiWebsite.id
+        
+        // Enable public sharing for this website's analytics
+        shareId = await setWebsiteSharing(umamiWebsite.id, true)
+      }
+    } catch (analyticsError) {
+      // Log error but continue with product creation
+      console.error("Error setting up analytics:", analyticsError)
+      // Use default analytics ID as fallback
+      analyticsId = process.env.DEFAULT_ANALYTICS_ID || "c47b9941-16f4-4778-9791-6965b1ed9a67"
+    }
+
     const productData = {
-          name,
+      name,
       description: formData.get("description") as string,
       price: formData.get("price") as string,
       currency: "USD",
       template: formData.get("template") as string || "modern",
       product_type: "single",
-          published: true,
+      published: true,
       featured: false,
       features: featuresArray,
       benefits: benefitsArray,
       color: formData.get("color") as string,
       accent_color: formData.get("accentColor") as string,
-      subdomain: formData.get("domain") as string,
+      subdomain,
       user_id: userId || session?.user?.id,
-      slug: formData.get("domain"),
+      slug: subdomain,
       tagline: formData.get("tagline") as string,
-          template_data: {
+      analytics_id: analyticsId,
+      analytics_share_id: shareId,
+      template_data: {
         faq: JSON.parse(formData.get("faq") as string || "[]"),
         seo: JSON.parse(formData.get("seo") as string || "{}"),
         brand: JSON.parse(formData.get("brand") as string || "{}"),
@@ -86,24 +110,14 @@ export async function createProduct(formData: FormData, userId?: string) {
     // Log the processed product data
     console.log("Processed product data:", productData)
 
-    // Validate required fields with more detailed error messages
-    const missingFields = []
-    if (!productData.name) missingFields.push("name")
-    if (!productData.description) missingFields.push("description")
-    if (!productData.subdomain) missingFields.push("domain")
-
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(", ")}`)
-    }
-
     // Create the product
     const { data: product, error: productError } = await supabase
-          .from("products")
+      .from("products")
       .insert([productData])
-          .select()
+      .select()
       .single()
 
-        if (productError) {
+    if (productError) {
       throw new Error(productError.message)
     }
 
@@ -112,7 +126,7 @@ export async function createProduct(formData: FormData, userId?: string) {
       .from("domains")
       .insert([
         {
-          subdomain: productData.subdomain,
+          subdomain,
           user_id: productData.user_id,
           is_active: true,
         },
@@ -122,6 +136,25 @@ export async function createProduct(formData: FormData, userId?: string) {
       // If domain creation fails, delete the product
       await supabase.from("products").delete().eq("id", product.id)
       throw new Error(domainError.message)
+    }
+
+    // Also save analytics tracking info in a separate table for easier querying
+    if (analyticsId) {
+      const { error: trackingError } = await supabase
+        .from("analytics_tracking")
+        .insert([{
+          subdomain,
+          product_id: product.id,
+          user_id: productData.user_id,
+          tracking_id: analyticsId,
+          share_id: shareId,
+          created_at: new Date().toISOString()
+        }])
+
+      if (trackingError) {
+        console.error("Error saving analytics tracking info:", trackingError)
+        // Non-critical error, continue with product creation
+      }
     }
 
     revalidatePath("/dashboard")
