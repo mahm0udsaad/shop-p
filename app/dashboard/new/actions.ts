@@ -1,17 +1,18 @@
 "use server"
 
+import { createUmamiWebsite } from "@/app/actions/umami"
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { createUmamiWebsite, getWebsiteByDomain, setWebsiteSharing } from "@/app/actions/umami"
+
 
 export async function createProduct(formData: FormData, userId?: string) {
   try {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
     // If no session and no userId provided, return error
-    if (!session && !userId) {
+    if (!user && !userId) {
       throw new Error("Authentication required")
     }
 
@@ -40,33 +41,18 @@ export async function createProduct(formData: FormData, userId?: string) {
       throw new Error(`Missing required fields: ${missingFields.join(", ")}`)
     }
     
-    // Create or find an analytics ID for this subdomain in Umami
+    // Create analytics website in Umami
     let analyticsId: string | null = null
     let shareId: string | null = null
     
     try {
-      // Set the full domain for the analytics
       const fullDomain = `${subdomain}.shipfaster.tech`
-      
-      // Check if a website already exists for this domain
-      let umamiWebsite = await getWebsiteByDomain(fullDomain)
-      
-      if (!umamiWebsite) {
-        // Create new website in Umami
-        umamiWebsite = await createUmamiWebsite(
-          `${name} (${subdomain})`, 
-          fullDomain
-        )
-      }
-      
+      const umamiWebsite = await createUmamiWebsite(name, fullDomain)
+      console.log("Umami website created:", umamiWebsite)
       if (umamiWebsite) {
         analyticsId = umamiWebsite.id
-        
-        // Enable public sharing for this website's analytics
-        shareId = await setWebsiteSharing(umamiWebsite.id, true)
       }
     } catch (analyticsError) {
-      // Log error but continue with product creation
       console.error("Error setting up analytics:", analyticsError)
       // Use default analytics ID as fallback
       analyticsId = process.env.DEFAULT_ANALYTICS_ID || "c47b9941-16f4-4778-9791-6965b1ed9a67"
@@ -86,7 +72,7 @@ export async function createProduct(formData: FormData, userId?: string) {
       color: formData.get("color") as string,
       accent_color: formData.get("accentColor") as string,
       subdomain,
-      user_id: userId || session?.user?.id,
+      user_id: userId || user?.id,
       slug: subdomain,
       tagline: formData.get("tagline") as string,
       analytics_id: analyticsId,
@@ -111,56 +97,57 @@ export async function createProduct(formData: FormData, userId?: string) {
     console.log("Processed product data:", productData)
 
     // Create the product
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .insert([productData])
-      .select()
-      .single()
+    // const { data: product, error: productError } = await supabase
+    //   .from("products")
+    //   .insert([productData])
+    //   .select()
+    //   .single()
 
-    if (productError) {
-      throw new Error(productError.message)
-    }
+    // if (productError) {
+    //   throw new Error(productError.message)
+    // }
 
-    // Create the domain entry
-    const { error: domainError } = await supabase
-      .from("domains")
-      .insert([
-        {
-          subdomain,
-          user_id: productData.user_id,
-          is_active: true,
-        },
-      ])
+    // // Create the domain entry
+    // const { error: domainError } = await supabase
+    //   .from("domains")
+    //   .insert([
+    //     {
+    //       subdomain,
+    //       user_id: productData.user_id,
+    //       is_active: true,
+    //     },
+    //   ])
 
-    if (domainError) {
-      // If domain creation fails, delete the product
-      await supabase.from("products").delete().eq("id", product.id)
-      throw new Error(domainError.message)
-    }
+    // if (domainError) {
+    //   // If domain creation fails, delete the product
+    //   await supabase.from("products").delete().eq("id", product.id)
+    //   throw new Error(domainError.message)
+    // }
 
-    // Also save analytics tracking info in a separate table for easier querying
-    if (analyticsId) {
-      const { error: trackingError } = await supabase
-        .from("analytics_tracking")
-        .insert([{
-          subdomain,
-          product_id: product.id,
-          user_id: productData.user_id,
-          tracking_id: analyticsId,
-          share_id: shareId,
-          created_at: new Date().toISOString()
-        }])
+    // // Also save analytics tracking info in a separate table for easier querying
+    // if (analyticsId) {
+    //   const { error: trackingError } = await supabase
+    //     .from("analytics_tracking")
+    //     .insert([{
+    //       subdomain,
+    //       product_id: product.id,
+    //       user_id: productData.user_id,
+    //       tracking_id: analyticsId,
+    //       share_id: shareId,
+    //       created_at: new Date().toISOString()
+    //     }])
 
-      if (trackingError) {
-        console.error("Error saving analytics tracking info:", trackingError)
-        // Non-critical error, continue with product creation
-      }
-    }
+    //   if (trackingError) {
+    //     console.error("Error saving analytics tracking info:", trackingError)
+    //     // Non-critical error, continue with product creation
+    //   }
+    // }
 
     revalidatePath("/dashboard")
-    redirect("/dashboard")
   } catch (error) {
     console.error("Error creating product:", error)
     throw error
+  } finally {
+    redirect("/dashboard")
   }
 }

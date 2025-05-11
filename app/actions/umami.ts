@@ -1,145 +1,117 @@
 const UMAMI_URL = process.env.UMAMI_URL || "https://analytics.shipfaster.tech";
-const UMAMI_USERNAME = process.env.UMAMI_USERNAME || 'admin';
-const UMAMI_PASSWORD = process.env.UMAMI_PASSWORD;
+const USERNAME = process.env.UMAMI_USERNAME || 'admin';
+const PASSWORD = process.env.UMAMI_PASSWORD;
 const UMAMI_API_KEY = process.env.UMAMI_API_KEY; // Optional API key for direct access
 
-// Session token cache with expiration
+// Session storage
 let sessionToken: string | null = null;
 let tokenExpiry: number = 0;
 
 /**
  * Login to Umami and get a session token
  */
-async function login(): Promise<string | null> {
+async function login(): Promise<boolean> {
   try {
-    // If we have a valid API key, use that instead of logging in
-    if (UMAMI_API_KEY) {
-      return UMAMI_API_KEY;
-    }
-    
-    // Check if we already have a valid token
-    if (sessionToken && tokenExpiry > Date.now()) {
-      return sessionToken;
-    }
-    
-    // Otherwise login
     const response = await fetch(`${UMAMI_URL}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        username: UMAMI_USERNAME,
-        password: UMAMI_PASSWORD
+        username: USERNAME,
+        password: PASSWORD
       })
     });
-    
+
+    if (!response.ok) {
+      throw new Error(`Login failed with status: ${response.status}`);
+    }
+
     const data = await response.json();
     
     // Check if token exists in response data
     if (data && data.token) {
       sessionToken = data.token;
-      // Set expiry to 6 hours from now
-      tokenExpiry = Date.now() + 6 * 60 * 60 * 1000;
-      return sessionToken;
-    } 
+      console.log("Login successful, got token");
+      return true;
+    }
     
     // Fallback to cookie-based auth if needed
-    else if (response.headers && response.headers.get('set-cookie')) {
-      const cookie = response.headers.get('set-cookie')?.split(',').find(c => c.startsWith('auth='));
-      if (cookie) {
-        sessionToken = cookie;
-        tokenExpiry = Date.now() + 6 * 60 * 60 * 1000;
-        return sessionToken;
+    const cookies = response.headers.get('set-cookie');
+    if (cookies) {
+      const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='));
+      if (authCookie) {
+        sessionToken = authCookie.trim();
+        console.log("Login successful, got cookie");
+        return true;
       }
     }
     
     console.error("Login succeeded but no token or cookie received");
-    return null;
-  } catch (error: any) {
-    console.error("Login failed:", error.message);
-    if (error.response) {
-      console.error("Server response:", error.response.data);
-    }
-    return null;
+    return false;
+  } catch (error) {
+    console.error("Login failed:", error instanceof Error ? error.message : String(error));
+    return false;
   }
 }
 
 /**
  * Make an authenticated request to Umami API
  */
-async function umamiRequest<T>(
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE', 
-  endpoint: string, 
-  data?: any, 
-  params?: any
-): Promise<T | null> {
+async function makeUmamiRequest(method: string, endpoint: string, data: any = null, params: Record<string, string | number> = {}) {
+  // Ensure we have a session token
+  if (!sessionToken && !(await login())) {
+    console.error("Could not authenticate with Umami");
+    return null;
+  }
+
   try {
-    // Get auth token
-    const token = await login();
-    if (!token) {
-      throw new Error("Authentication failed");
+    // Prepare headers with token
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Check if token is a cookie or JWT
+    if (sessionToken && sessionToken.startsWith('auth=')) {
+      headers['Cookie'] = sessionToken;
+    } else if (sessionToken) {
+      headers['Authorization'] = `Bearer ${sessionToken}`;
     }
-    
-    // Prepare headers
-    const headers: Record<string, string> = {};
-    
-    // Set auth header based on token type
-    if (token.startsWith('auth=')) {
-      headers['Cookie'] = token;
-    } else if (UMAMI_API_KEY) {
-      headers['x-umami-api-key'] = token;
-    } else {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    // Make request
-    const response = await fetch(`${UMAMI_URL}${endpoint}${params ? '?' + new URLSearchParams(params).toString() : ''}`, {
-      method,
-      headers,
-      ...(data && { body: JSON.stringify(data) })
+
+    // Build URL with query parameters
+    const url = new URL(`${UMAMI_URL}${endpoint}`);
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.append(key, String(value));
     });
-    
-    return await response.json() as T;
-  } catch (error: any) {
-    // If token expired, clear it and retry once
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      sessionToken = null;
-      tokenExpiry = 0;
-      
-      // Try one more time with fresh login
-      try {
-        const token = await login();
-        if (!token) {
-          throw new Error("Authentication failed on retry");
+
+    const config: RequestInit = {
+      method: method.toUpperCase(),
+      headers,
+    };
+
+    if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put')) {
+      config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url.toString(), config);
+
+    if (!response.ok) {
+      // If unauthorized, try to login again
+      if (response.status === 401 || response.status === 403) {
+        console.log("Session expired, attempting to re-login...");
+        if (await login()) {
+          return makeUmamiRequest(method, endpoint, data, params); // Retry with new token
         }
-        
-        const headers: Record<string, string> = {};
-        if (token.startsWith('auth=')) {
-          headers['Cookie'] = token;
-        } else if (UMAMI_API_KEY) {
-          headers['x-umami-api-key'] = token;
-        } else {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        
-        const response = await fetch(`${UMAMI_URL}${endpoint}${params ? '?' + new URLSearchParams(params).toString() : ''}`, {
-          method,
-          headers,
-          ...(data && { body: JSON.stringify(data) })
-        });
-        
-        return await response.json() as T;
-      } catch (retryError: any) {
-        console.error("API request retry failed:", retryError.message);
-        throw retryError;
       }
+      throw new Error(`Request failed with status: ${response.status}`);
     }
-    
-    console.error(`${method} ${endpoint} failed:`, error.message);
-    if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Data:", error.response.data);
-    }
-    throw error;
+
+    const responseData = await response.json();
+    return responseData;
+  } catch (error) {
+    console.error(`Error with ${method.toUpperCase()} request to ${endpoint}:`, 
+      error instanceof Error ? error.message : String(error));
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -158,15 +130,24 @@ interface UmamiWebsite {
 /**
  * Create a new website in Umami
  */
-export async function createUmamiWebsite(
-  name: string, 
-  domain: string
-): Promise<UmamiWebsite | null> {
-  try {
-    const data = { name, domain };
-    return await umamiRequest<UmamiWebsite>('POST', '/api/websites', data);
-  } catch (error) {
-    console.error("Failed to create website in Umami:", error);
+export async function createUmamiWebsite(name: string, domain: string): Promise<UmamiWebsite | null> {
+  // Generate a unique website name with timestamp
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const websiteData = {
+    name: `${name} (${timestamp})`,
+    domain: domain,
+    shareId: null
+  };
+  
+  console.log(`Creating Umami website: ${websiteData.name}`);
+  
+  const website = await makeUmamiRequest('post', '/api/websites', websiteData);
+  
+  if (website && website.id) {
+    console.log("Website created successfully:", website);
+    return website;
+  } else {
+    console.error("Failed to create website");
     return null;
   }
 }
@@ -175,47 +156,21 @@ export async function createUmamiWebsite(
  * Get a website by domain
  */
 export async function getWebsiteByDomain(domain: string): Promise<UmamiWebsite | null> {
-  try {
-    // Get all websites first
-    const websites = await umamiRequest<UmamiWebsite[]>('GET', '/api/websites');
-    
-    if (!websites) {
-      return null;
-    }
-    
-    // Find the one matching our domain
-    const website = websites.find(site => 
-      site.domain === domain || site.domain.includes(domain)
-    );
-    
-    return website || null;
-  } catch (error) {
-    console.error("Failed to find website by domain:", error);
-    return null;
+  const websites = await makeUmamiRequest('get', '/api/websites');
+  if (websites && Array.isArray(websites)) {
+    return websites.find(website => website.domain === domain);
   }
+  return null;
 }
 
 /**
  * Enable or disable website sharing
  */
-export async function setWebsiteSharing(
-  websiteId: string, 
-  enableSharing: boolean
-): Promise<string | null> {
-  try {
-    if (enableSharing) {
-      // Enable sharing
-      const result = await umamiRequest<{share_id: string}>('POST', `/api/websites/${websiteId}/share`);
-      return result?.share_id || null;
-    } else {
-      // Disable sharing
-      await umamiRequest('DELETE', `/api/websites/${websiteId}/share`);
-      return null;
-    }
-  } catch (error) {
-    console.error("Failed to update website sharing:", error);
-    return null;
-  }
+export async function setWebsiteSharing(websiteId: string, enable: boolean): Promise<string | null> {
+  const website = await makeUmamiRequest('put', `/api/websites/${websiteId}`, {
+    enableShare: enable
+  });
+  return website?.shareId || null;
 }
 
 /**
@@ -232,9 +187,9 @@ export async function getWebsiteAnalytics(
     const startAt = typeof startDate === 'number' ? startDate : startDate.getTime();
     const endAt = typeof endDate === 'number' ? endDate : endDate.getTime();
     
-    return await umamiRequest('GET', `/api/websites/${websiteId}/stats`, null, {
-      startAt,
-      endAt,
+    return await makeUmamiRequest('get', `/api/websites/${websiteId}/stats`, null, {
+      startAt: String(startAt),
+      endAt: String(endAt),
       unit
     });
   } catch (error) {
@@ -258,11 +213,11 @@ export async function getWebsiteMetrics(
     const startAt = typeof startDate === 'number' ? startDate : startDate.getTime();
     const endAt = typeof endDate === 'number' ? endDate : endDate.getTime();
     
-    return await umamiRequest('GET', `/api/websites/${websiteId}/metrics`, null, {
+    return await makeUmamiRequest('get', `/api/websites/${websiteId}/metrics`, null, {
       type: metricType,
-      startAt,
-      endAt,
-      limit
+      startAt: String(startAt),
+      endAt: String(endAt),
+      limit: String(limit)
     });
   } catch (error) {
     console.error(`Failed to get website ${metricType} metrics:`, error);
@@ -275,7 +230,7 @@ export async function getWebsiteMetrics(
  */
 export async function deleteUmamiWebsite(websiteId: string): Promise<boolean> {
   try {
-    await umamiRequest('DELETE', `/api/websites/${websiteId}`);
+    await makeUmamiRequest('delete', `/api/websites/${websiteId}`);
     return true;
   } catch (error) {
     console.error("Failed to delete website:", error);
