@@ -18,11 +18,18 @@ export async function GET(request: Request) {
       .eq("is_active", true)
       .single()
 
-      if (error) {
+    // If we get a 'not found' error, it means the domain is available
+    if (error?.code === 'PGRST116') {
+      return NextResponse.json({ available: true })
+    }
+
+    // For any other errors, return as server error
+    if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ available: !data })
+    // If we found data, the domain is taken
+    return NextResponse.json({ available: false })
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to check domain availability" },

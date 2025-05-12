@@ -42,7 +42,19 @@ async function getTrackingId(host: string) {
     // Get the Supabase client
     const supabase = await createClient();
     
-    // First, check if we have a tracking ID for this specific subdomain
+    // Check domains table for analytics ID
+    const { data: domainData } = await supabase
+      .from("domains")
+      .select("analytics_id")
+      .eq("subdomain", subdomain)
+      .eq("is_active", true)
+      .single();
+      
+    if (domainData?.analytics_id) {
+      return domainData.analytics_id;
+    }
+    
+    // If no domain-specific tracking ID is found, fall back to analytics_tracking table
     const { data: analyticData } = await supabase
       .from("analytics_tracking")
       .select("tracking_id")
@@ -50,33 +62,7 @@ async function getTrackingId(host: string) {
       .single();
       
     if (analyticData?.tracking_id) {
-      // We have a tracking ID for this subdomain
       return analyticData.tracking_id;
-    }
-    
-    // Alternatively, fetch from products table if you store it there
-    const { data: productData } = await supabase
-      .from("products")
-      .select("analytics_id, user_id")
-      .eq("subdomain", subdomain)
-      .single();
-      
-    if (productData?.analytics_id) {
-      return productData.analytics_id;
-    }
-    
-    // If we don't have a tracking ID specific to this subdomain,
-    // we could check if there's a user-level tracking ID
-    if (productData?.user_id) {
-      const { data: userData } = await supabase
-        .from("users")
-        .select("default_tracking_id")
-        .eq("id", productData.user_id)
-        .single();
-        
-      if (userData?.default_tracking_id) {
-        return userData.default_tracking_id;
-      }
     }
     
     // Fall back to the default tracking ID if nothing else is found

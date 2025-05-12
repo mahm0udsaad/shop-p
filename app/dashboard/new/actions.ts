@@ -54,8 +54,6 @@ export async function createProduct(formData: FormData, userId?: string) {
       }
     } catch (analyticsError) {
       console.error("Error setting up analytics:", analyticsError)
-      // Use default analytics ID as fallback
-      analyticsId = process.env.DEFAULT_ANALYTICS_ID || "c47b9941-16f4-4778-9791-6965b1ed9a67"
     }
 
     const productData = {
@@ -75,8 +73,6 @@ export async function createProduct(formData: FormData, userId?: string) {
       user_id: userId || user?.id,
       slug: subdomain,
       tagline: formData.get("tagline") as string,
-      analytics_id: analyticsId,
-      analytics_share_id: shareId,
       template_data: {
         faq: JSON.parse(formData.get("faq") as string || "[]"),
         seo: JSON.parse(formData.get("seo") as string || "{}"),
@@ -97,51 +93,55 @@ export async function createProduct(formData: FormData, userId?: string) {
     console.log("Processed product data:", productData)
 
     // Create the product
-    // const { data: product, error: productError } = await supabase
-    //   .from("products")
-    //   .insert([productData])
-    //   .select()
-    //   .single()
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .insert([productData])
+      .select()
+      .single()
 
-    // if (productError) {
-    //   throw new Error(productError.message)
-    // }
+    if (productError) {
+      throw new Error(productError.message)
+    }
 
-    // // Create the domain entry
-    // const { error: domainError } = await supabase
-    //   .from("domains")
-    //   .insert([
-    //     {
-    //       subdomain,
-    //       user_id: productData.user_id,
-    //       is_active: true,
-    //     },
-    //   ])
+    // Create the domain entry
+    const { data: domain, error: domainError } = await supabase
+      .from("domains")
+      .insert([
+        {
+          subdomain,
+          user_id: productData.user_id,
+          is_active: true,
+          analytics_id: analyticsId,
+          analytics_share_id: shareId
+        },
+      ])
+      .select()
+      .single()
 
-    // if (domainError) {
-    //   // If domain creation fails, delete the product
-    //   await supabase.from("products").delete().eq("id", product.id)
-    //   throw new Error(domainError.message)
-    // }
+    if (domainError) {
+      // If domain creation fails, delete the product
+      await supabase.from("products").delete().eq("id", product.id)
+      throw new Error(domainError.message)
+    }
 
-    // // Also save analytics tracking info in a separate table for easier querying
-    // if (analyticsId) {
-    //   const { error: trackingError } = await supabase
-    //     .from("analytics_tracking")
-    //     .insert([{
-    //       subdomain,
-    //       product_id: product.id,
-    //       user_id: productData.user_id,
-    //       tracking_id: analyticsId,
-    //       share_id: shareId,
-    //       created_at: new Date().toISOString()
-    //     }])
+    // Also save analytics tracking info in a separate table for easier querying
+    if (analyticsId) {
+      const { error: trackingError } = await supabase
+        .from("analytics_tracking")
+        .insert([{
+          subdomain,
+          product_id: product.id,
+          user_id: productData.user_id,
+          tracking_id: analyticsId,
+          share_id: shareId,
+          created_at: new Date().toISOString()
+        }])
 
-    //   if (trackingError) {
-    //     console.error("Error saving analytics tracking info:", trackingError)
-    //     // Non-critical error, continue with product creation
-    //   }
-    // }
+      if (trackingError) {
+        console.error("Error saving analytics tracking info:", trackingError)
+        // Non-critical error, continue with product creation
+      }
+    }
 
     revalidatePath("/dashboard")
   } catch (error) {
