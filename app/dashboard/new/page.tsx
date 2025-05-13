@@ -14,107 +14,37 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DomainValidator } from "./components/domain-validator"
 import { PublishSuccess } from "./components/publish-success"
 import { createProduct } from "./actions"
-// Add the useAuth import at the top
 import { useAuth } from "@/contexts/auth-context"
+import { useProductForm } from "@/contexts/product-form-context"
 
-// In the NewProductPage component, add the useAuth hook
 export default function NewProductPage() {
   const { user } = useAuth()
-  const [step, setStep] = useState(0)
-  const [productType, setProductType] = useState<"single" | "multi">("single")
-  const [selectedTemplate, setSelectedTemplate] = useState("modern")
-  const [previewDevice, setPreviewDevice] = useState("desktop")
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isPublishing, setIsPublishing] = useState(false)
-  const [publishResult, setPublishResult] = useState<{
-    success?: boolean
-    error?: string
-    domain?: string
-    productType?: "single" | "multi"
-  } | null>(null)
   const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false)
-
-  // Update selected template when product type changes
-  useEffect(() => {
-    if (productType === "single" && selectedTemplate.startsWith("multi-product")) {
-      setSelectedTemplate("modern")
-    } else if (productType === "multi" && !selectedTemplate.startsWith("multi-product")) {
-      setSelectedTemplate("multi-product")
-    }
-  }, [productType, selectedTemplate])
-
-  // Single product data
-  const [productData, setProductData] = useState({
-    name: "",
-    tagline: "",
-    description: "",
-    features: "",
-    benefits: "",
-    price: {
-      currency: "USD",
-      monthly: null,
-      yearly: null,
-      discountNote: "",
-    },
-    media: {
-      images: [],
-      video: "",
-    },
-    testimonials: [],
-    callToAction: {
-      text: "",
-      url: "",
-    },
-    faq: [],
-    colors: ["#000000"],
-    sizes: [],
-    category: "",
-    color: "#6F4E37",
-    accentColor: "#ECB176",
-    brand: {
-      name: "",
-      logo: "",
-      contactEmail: "",
-      socialLinks: {
-        twitter: "",
-        linkedin: "",
-        facebook: "",
-      },
-    },
-    seo: {
-      title: "",
-      description: "",
-      keywords: [],
-      image: "",
-    },
-    domain: "",
-  })
-
-  // Multi-product data
-  const [multiProductsData, setMultiProductsData] = useState([
-    {
-      name: "",
-      description: "",
-      price: "",
-      category: "",
-      features: "",
-      images: [],
-    },
-  ])
-
-  // Store data for multi-product
-  const [storeData, setStoreData] = useState({
-    name: "",
-    description: "",
-    about: "",
-    tagline: "",
-    category: "",
-    footerContent: "",
-    contactEmail: "",
-    color: "#6F4E37",
-    accentColor: "#ECB176",
-    domain: "",
-  })
+  const [isDomainChecking, setIsDomainChecking] = useState(false)
+  const [isDomainAvailable, setIsDomainAvailable] = useState<boolean | null>(null)
+  const {
+    step,
+    setStep,
+    productType,
+    setProductType,
+    selectedTemplate,
+    setSelectedTemplate,
+    previewDevice,
+    setPreviewDevice,
+    errors,
+    setErrors,
+    productData,
+    setProductData,
+    multiProductsData,
+    setMultiProductsData,
+    storeData,
+    setStoreData,
+    isPublishing,
+    setIsPublishing,
+    publishResult,
+    setPublishResult,
+    resetForm
+  } = useProductForm()
 
   const steps = ["Product Type", "Product Details", "Choose Template", "Customize", "Publish"]
 
@@ -138,14 +68,14 @@ export default function NewProductPage() {
         if (productData.callToAction?.text && !productData.callToAction.url)
           newErrors["callToAction.url"] = "URL is required if text is provided"
 
-          // Validate testimonials
-        ;(productData.testimonials || []).forEach((testimonial, index) => {
+        // Validate testimonials
+        productData.testimonials.forEach((testimonial, index) => {
           if (testimonial.quote && !testimonial.name)
             newErrors[`testimonial_${index}_name`] = "Name is required for testimonial"
         })
 
         // Validate FAQs
-        ;(productData.faq || []).forEach((faq, index) => {
+        productData.faq.forEach((faq, index) => {
           if (!faq.question) newErrors[`faq_${index}_question`] = "Question is required"
           if (!faq.answer) newErrors[`faq_${index}_answer`] = "Answer is required"
         })
@@ -196,13 +126,18 @@ export default function NewProductPage() {
     window.scrollTo(0, 0)
   }
 
-  // Update the handlePublish function to pass the user ID
   const handlePublish = async () => {
     if (!validateStep()) return
 
     // Check if user is authenticated
     if (!user) {
       setPublishResult({ error: "You must be logged in to publish a product" })
+      return
+    }
+
+    // Check if domain is available
+    if (isDomainAvailable !== true) {
+      setPublishResult({ error: "Please ensure your domain is valid and available" })
       return
     }
 
@@ -215,6 +150,8 @@ export default function NewProductPage() {
       // Common fields
       formData.append("productType", productType)
       formData.append("template", selectedTemplate)
+
+      const domain = productType === "single" ? productData.domain : storeData.domain
 
       if (productType === "single") {
         // Single product fields
@@ -251,10 +188,20 @@ export default function NewProductPage() {
         formData.append("multiProducts", JSON.stringify(multiProductsData))
       }
 
-      // Submit the form with user ID
+      // Submit the form with user ID and get the result
       const result = await createProduct(formData, user.id)
-
-      setPublishResult(result)
+      
+      // Check if the product was created successfully
+      if (result && result.success) {
+        // Set success state with domain and product type
+        setPublishResult({
+          success: true,
+          domain,
+          productType
+        })
+        
+        setTimeout(() => resetForm(), 40000)
+      }
     } catch (error) {
       console.error("Error publishing:", error)
       setPublishResult({ error: "An unexpected error occurred" })
@@ -437,8 +384,11 @@ export default function NewProductPage() {
   // If we have a successful publish result, show the success screen
   if (publishResult?.success) {
     return (
-      <div className="container py-8 max-w-6xl mx-auto">
-        <PublishSuccess domain={publishResult.domain || ""} productType={publishResult.productType || "single"} />
+      <div className="bg-[#FED8B1] py-8 h-screen flex items-center justify-center">
+        <PublishSuccess 
+          domain={publishResult.domain || ""} 
+          productType={publishResult.productType || "single"} 
+        />
       </div>
     )
   }
@@ -448,6 +398,19 @@ export default function NewProductPage() {
       setIsFullPreviewOpen(true)
     } else {
       setPreviewDevice(value)
+    }
+  }
+
+  const handleDomainValidationChange = (isAvailable: boolean | null, isChecking: boolean) => {
+    setIsDomainChecking(isChecking);
+    
+    // Only update availability state in specific circumstances:
+    // 1. When it changes from null to a boolean value (initial validation)
+    // 2. When it changes from true to false (domain became invalid)
+    // 3. When it changes from false to true (domain became valid)
+    // This prevents unnecessary state updates during typing
+    if (isAvailable !== null || isDomainAvailable === null) {
+      setIsDomainAvailable(isAvailable);
     }
   }
 
@@ -539,6 +502,7 @@ export default function NewProductPage() {
                       onChange={(value) => setProductData({ ...productData, domain: value })}
                       error={errors.domain}
                       className="mb-4"
+                      onValidationChange={handleDomainValidationChange}
                     />
                   ) : (
                     <DomainValidator
@@ -546,6 +510,7 @@ export default function NewProductPage() {
                       onChange={(value) => setStoreData({ ...storeData, domain: value })}
                       error={errors.store_domain}
                       className="mb-4"
+                      onValidationChange={handleDomainValidationChange}
                     />
                   )}
 
@@ -629,13 +594,33 @@ export default function NewProductPage() {
               ) : (
                 <Button
                   onClick={handlePublish}
-                  disabled={isPublishing}
+                  disabled={isPublishing || isDomainChecking || isDomainAvailable !== true}
                   className="bg-[#ECB176] hover:bg-[#D9A066] text-white flex items-center gap-1"
                 >
                   {isPublishing ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Publishing...
+                    </>
+                  ) : isDomainChecking ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Checking domain...
+                    </>
+                  ) : isDomainAvailable !== true ? (
+                    <>
+                      {step === 4 && ((productType === "single" && productData.domain) || 
+                      (productType === "multi" && storeData.domain)) ? (
+                        <>
+                          Validate domain first
+                          <X className="h-4 w-4 ml-1" />
+                        </>
+                      ) : (
+                        <>
+                          Enter a valid domain
+                          <X className="h-4 w-4 ml-1" />
+                        </>
+                      )}
                     </>
                   ) : (
                     <>

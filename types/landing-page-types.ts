@@ -1,5 +1,6 @@
 export interface LandingPageData {
   product: {
+    id?: string
     name: string
     tagline: string
     description: string

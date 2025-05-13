@@ -1,4 +1,5 @@
 import { ShoppingBag } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface Order {
   id: string
@@ -14,6 +15,24 @@ interface RecentOrdersProps {
 }
 
 export function RecentOrders({ orders = [] }: RecentOrdersProps) {
+  // Function to get status badge color
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "new":
+        return "bg-blue-100 text-blue-800"
+      case "processing":
+        return "bg-yellow-100 text-yellow-800"
+      case "shipped":
+        return "bg-purple-100 text-purple-800"
+      case "delivered":
+        return "bg-green-100 text-green-800"
+      case "cancelled":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+  
   if (!orders || orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -37,9 +56,14 @@ export function RecentOrders({ orders = [] }: RecentOrdersProps) {
               <p className="text-xs text-muted-foreground">{order.customer}</p>
             </div>
           </div>
-          <div className="ml-auto text-right">
+          <div className="ml-auto text-right flex flex-col items-end gap-1">
             <p className="text-sm font-medium">{order.amount}</p>
-            <p className="text-xs text-muted-foreground">{order.date}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">{order.date}</p>
+              <Badge className={getStatusColor(order.status)}>
+                {order.status}
+              </Badge>
+            </div>
           </div>
         </div>
       ))}

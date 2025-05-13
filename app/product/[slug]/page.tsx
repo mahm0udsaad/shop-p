@@ -21,9 +21,9 @@ interface ProductPageProps {
 }
 
 // Helper function to get subdomain or slug from request
-function getProductIdentifier(params: { slug: string }) {
+async function getProductIdentifier(params: { slug: string }) {
   // Get the request headers
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get('host') || '';
   const xSubdomain = headersList.get('x-subdomain');
   
@@ -34,7 +34,7 @@ function getProductIdentifier(params: { slug: string }) {
   }
   
   // Then check if we're on a subdomain
-  if (host.includes('.shipfaster.tech') && !host.startsWith('www.') && !host.startsWith('shipfaster.')) {
+  if (host.includes('.productshowcase.com') && !host.startsWith('www.') && !host.startsWith('productshowcase.')) {
     const subdomain = host.split('.')[0];
     console.log(`Detected subdomain from host: ${subdomain}`);
     return subdomain;
@@ -47,7 +47,7 @@ function getProductIdentifier(params: { slug: string }) {
 
 export async function generateMetadata({ params }: ProductPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   // Get the product identifier (slug or subdomain)
-  const identifier = getProductIdentifier(params);
+  const identifier = await getProductIdentifier(params);
   
   // Initialize Supabase client
   const supabase = createServerComponentClient({ cookies })
@@ -108,7 +108,7 @@ export async function generateMetadata({ params }: ProductPageProps, parent: Res
 
 export default async function ProductPage({ params }: ProductPageProps) {
   // Get the product identifier (slug or subdomain)
-  const identifier = getProductIdentifier(params);
+  const identifier = await getProductIdentifier(params);
   
   // Log what we're looking for
   console.log(`Rendering product page for identifier: ${identifier}`);
@@ -127,6 +127,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     if (product) {
       console.log(`Found product by slug: ${product.name}`);
+      console.log('Template data:', JSON.stringify(product.template_data).slice(0, 150) + '...');
       
       // Get product images
       const { data: productImages } = await supabase.storage.from("product-images").list(product.id, {
@@ -144,29 +145,67 @@ export default async function ProductPage({ params }: ProductPageProps) {
           })
         : []
 
-      // Render the appropriate template
-      const templateProps = {
+      // Create properly formatted landingPageData
+      const landingPageData = {
         product: {
-          ...product,
-          images,
+          id: product.id,
+          name: product.name,
+          tagline: product.tagline || "",
+          description: product.description || "",
+          features: Array.isArray(product.features) ? product.features : [],
+          benefits: product.benefits || "",
+          price: {
+            currency: product.currency || "USD",
+            monthly: null,
+            yearly: Number(product.price) || 0,
+            discountNote: ""
+          },
+          media: product.template_data?.media || {
+            images: images || [],
+            video: product.media?.video || ""
+          },
+          testimonials: product.template_data?.testimonials || [],
+          callToAction: product.template_data?.callToAction || { text: "", url: "" },
+          faq: product.template_data?.faq || []
         },
-      }
+        brand: product.template_data?.brand || {
+          name: product.brand?.name || "",
+          logo: product.brand?.logo || "",
+          contactEmail: product.brand?.contactEmail || "",
+          socialLinks: product.brand?.socialLinks || {
+            twitter: "",
+            linkedin: "",
+            facebook: ""
+          }
+        },
+        seo: product.template_data?.seo || {
+          title: product.name,
+          description: product.description,
+          keywords: [],
+          image: images[0] || ""
+        },
+        theme: product.template_data?.theme || {
+          primaryColor: product.color || "#3A86FF",
+          secondaryColor: product.accent_color || "#FF006E"
+        }
+      };
 
+      // Render the appropriate template
       switch (product.template) {
         case "classic":
-          return <ClassicTemplate {...templateProps} />
+          return <ClassicTemplate landingPageData={landingPageData} />
         case "modern":
-          return <ModernTemplate {...templateProps} />
+          return <ModernTemplate landingPageData={landingPageData} />
         case "minimal":
-          return <MinimalTemplate {...templateProps} />
+          return <MinimalTemplate landingPageData={landingPageData} />
         case "premium":
-          return <PremiumTemplate {...templateProps} />
+          return <PremiumTemplate landingPageData={landingPageData} />
         case "gallery":
-          return <GalleryTemplate {...templateProps} />
+          return <GalleryTemplate landingPageData={landingPageData} />
         case "showcase":
-          return <ShowcaseTemplate {...templateProps} />
+          return <ShowcaseTemplate landingPageData={landingPageData} />
         default:
-          return <ClassicTemplate {...templateProps} />
+          return <ClassicTemplate landingPageData={landingPageData} />
       }
     }
 
@@ -175,41 +214,231 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     if (domainData && !domainData.error) {
       console.log(`Found product via domain mapping: ${identifier}`);
+      console.log('Domain template data:', JSON.stringify(product.template_data).slice(0, 150) + '...');
       
       // Domain-based product found
       if (domainData.type === "single") {
-        const { product, template, brand, theme } = domainData
+        const { product, template, brand, theme } = domainData;
+        
+        // Create properly formatted landingPageData
+        const landingPageData = {
+          product: {
+            id: product.id,
+            name: product.name,
+            tagline: product.tagline || "",
+            description: product.description || "",
+            features: Array.isArray(product.features) ? product.features : [],
+            benefits: product.benefits || "",
+            price: {
+              currency: product.currency || "USD",
+              monthly: null,
+              yearly: Number(product.price) || 0,
+              discountNote: ""
+            },
+            media: product.template_data?.media || {
+              images: Array.isArray(product.media?.images) ? product.media.images : [],
+              video: product.media?.video || ""
+            },
+            testimonials: product.template_data?.testimonials || [],
+            callToAction: product.template_data?.callToAction || { text: "", url: "" },
+            faq: product.template_data?.faq || []
+          },
+          brand: product.template_data?.brand || {
+            name: brand?.name || "",
+            logo: brand?.logo || "",
+            contactEmail: brand?.contactEmail || "",
+            socialLinks: brand?.socialLinks || {
+              twitter: "",
+              linkedin: "",
+              facebook: ""
+            }
+          },
+          seo: product.template_data?.seo || {
+            title: product.name,
+            description: product.description,
+            keywords: [],
+            image: ""
+          },
+          theme: product.template_data?.theme || {
+            primaryColor: theme?.primaryColor || product.color || "#3A86FF",
+            secondaryColor: theme?.secondaryColor || product.accent_color || "#FF006E"
+          }
+        };
 
         // Select the template component based on the template name
         switch (template) {
           case "classic":
-            return <ClassicTemplate product={product} brand={brand} theme={theme} />
+            return <ClassicTemplate landingPageData={landingPageData} />
           case "modern":
-            return <ModernTemplate product={product} brand={brand} theme={theme} />
+            return <ModernTemplate landingPageData={landingPageData} />
           case "premium":
-            return <PremiumTemplate product={product} brand={brand} theme={theme} />
+            return <PremiumTemplate landingPageData={landingPageData} />
           case "showcase":
-            return <ShowcaseTemplate product={product} brand={brand} theme={theme} />
+            return <ShowcaseTemplate landingPageData={landingPageData} />
           case "gallery":
-            return <GalleryTemplate product={product} brand={brand} theme={theme} />
+            return <GalleryTemplate landingPageData={landingPageData} />
           case "minimal":
-            return <MinimalTemplate product={product} brand={brand} theme={theme} />
+            return <MinimalTemplate landingPageData={landingPageData} />
           default:
-            return <ModernTemplate product={product} brand={brand} theme={theme} />
+            return <ModernTemplate landingPageData={landingPageData} />
         }
       } else {
         // Multi-product store
         const { store, products, template, theme } = domainData
 
+        // Create properly formatted store data
+        const storeData = {
+          store: {
+            name: store.name || "",
+            description: store.description || "",
+            about: store.about || "",
+            tagline: store.tagline || "",
+            category: store.category || "",
+            footerContent: store.footer_content || "",
+            contactEmail: store.contact_email || "",
+            color: store.color || "#3A86FF",
+            accentColor: store.accent_color || "#FF006E"
+          },
+          products: products || [],
+          theme: {
+            primaryColor: theme?.primaryColor || store.color || "#3A86FF",
+            secondaryColor: theme?.secondaryColor || store.accent_color || "#FF006E"
+          }
+        };
+
         switch (template) {
           case "multi-product":
-            return <MultiProductTemplate store={store} products={products} theme={theme} />
+            // Return a fallback to a single product template if multi-product template isn't ready
+            return <ModernTemplate landingPageData={{
+              product: {
+                id: store.id,
+                name: store.name || "",
+                tagline: store.tagline || "",
+                description: store.description || "",
+                features: [],
+                benefits: store.about || "",
+                price: { currency: "USD", monthly: null, yearly: null, discountNote: "" },
+                media: { images: [], video: "" },
+                testimonials: [],
+                callToAction: { text: "View Products", url: "#products" },
+                faq: []
+              },
+              brand: {
+                name: store.name || "",
+                logo: "",
+                contactEmail: store.contact_email || "",
+                socialLinks: { twitter: "", linkedin: "", facebook: "" }
+              },
+              seo: {
+                title: store.name || "",
+                description: store.description || "",
+                keywords: [],
+                image: ""
+              },
+              theme: {
+                primaryColor: theme?.primaryColor || store.color || "#3A86FF",
+                secondaryColor: theme?.secondaryColor || store.accent_color || "#FF006E"
+              }
+            }} />
           case "multi-product-grid":
-            return <MultiProductGridTemplate store={store} products={products} theme={theme} />
+            // Same fallback approach
+            return <ModernTemplate landingPageData={{
+              product: {
+                id: store.id,
+                name: store.name || "",
+                tagline: store.tagline || "",
+                description: store.description || "",
+                features: [],
+                benefits: store.about || "",
+                price: { currency: "USD", monthly: null, yearly: null, discountNote: "" },
+                media: { images: [], video: "" },
+                testimonials: [],
+                callToAction: { text: "View Products", url: "#products" },
+                faq: []
+              },
+              brand: {
+                name: store.name || "",
+                logo: "",
+                contactEmail: store.contact_email || "",
+                socialLinks: { twitter: "", linkedin: "", facebook: "" }
+              },
+              seo: {
+                title: store.name || "",
+                description: store.description || "",
+                keywords: [],
+                image: ""
+              },
+              theme: {
+                primaryColor: theme?.primaryColor || store.color || "#3A86FF",
+                secondaryColor: theme?.secondaryColor || store.accent_color || "#FF006E"
+              }
+            }} />
           case "multi-product-catalog":
-            return <MultiProductCatalogTemplate store={store} products={products} theme={theme} />
+            // Same fallback approach
+            return <ModernTemplate landingPageData={{
+              product: {
+                id: store.id,
+                name: store.name || "",
+                tagline: store.tagline || "",
+                description: store.description || "",
+                features: [],
+                benefits: store.about || "",
+                price: { currency: "USD", monthly: null, yearly: null, discountNote: "" },
+                media: { images: [], video: "" },
+                testimonials: [],
+                callToAction: { text: "View Products", url: "#products" },
+                faq: []
+              },
+              brand: {
+                name: store.name || "",
+                logo: "",
+                contactEmail: store.contact_email || "",
+                socialLinks: { twitter: "", linkedin: "", facebook: "" }
+              },
+              seo: {
+                title: store.name || "",
+                description: store.description || "",
+                keywords: [],
+                image: ""
+              },
+              theme: {
+                primaryColor: theme?.primaryColor || store.color || "#3A86FF",
+                secondaryColor: theme?.secondaryColor || store.accent_color || "#FF006E"
+              }
+            }} />
           default:
-            return <MultiProductTemplate store={store} products={products} theme={theme} />
+            // Same fallback approach
+            return <ModernTemplate landingPageData={{
+              product: {
+                id: store.id,
+                name: store.name || "",
+                tagline: store.tagline || "",
+                description: store.description || "",
+                features: [],
+                benefits: store.about || "",
+                price: { currency: "USD", monthly: null, yearly: null, discountNote: "" },
+                media: { images: [], video: "" },
+                testimonials: [],
+                callToAction: { text: "View Products", url: "#products" },
+                faq: []
+              },
+              brand: {
+                name: store.name || "",
+                logo: "",
+                contactEmail: store.contact_email || "",
+                socialLinks: { twitter: "", linkedin: "", facebook: "" }
+              },
+              seo: {
+                title: store.name || "",
+                description: store.description || "",
+                keywords: [],
+                image: ""
+              },
+              theme: {
+                primaryColor: theme?.primaryColor || store.color || "#3A86FF",
+                secondaryColor: theme?.secondaryColor || store.accent_color || "#FF006E"
+              }
+            }} />
         }
       }
     }

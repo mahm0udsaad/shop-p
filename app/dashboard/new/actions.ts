@@ -143,11 +143,9 @@ export async function createProduct(formData: FormData, userId?: string) {
       }
     }
 
-    revalidatePath("/dashboard")
+    return { success: true, domain: subdomain , productType: "single" }
   } catch (error) {
     console.error("Error creating product:", error)
     throw error
-  } finally {
-    redirect("/dashboard")
-  }
+  } 
 }

@@ -1,0 +1,154 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Supabase data base schema
+| table_name                | column_name        | data_type                |
+| ------------------------- | ------------------ | ------------------------ |
+| analytics_tracking        | id                 | uuid                     |
+| analytics_tracking        | subdomain          | text                     |
+| analytics_tracking        | product_id         | uuid                     |
+| analytics_tracking        | user_id            | uuid                     |
+| analytics_tracking        | tracking_id        | text                     |
+| analytics_tracking        | share_id           | text                     |
+| analytics_tracking        | created_at         | timestamp with time zone |
+| analytics_tracking        | updated_at         | timestamp with time zone |
+| categories                | id                 | uuid                     |
+| categories                | name               | text                     |
+| categories                | slug               | text                     |
+| categories                | description        | text                     |
+| categories                | parent_id          | uuid                     |
+| categories                | created_at         | timestamp with time zone |
+| categories                | updated_at         | timestamp with time zone |
+| domains                   | id                 | uuid                     |
+| domains                   | subdomain          | text                     |
+| domains                   | user_id            | uuid                     |
+| domains                   | created_at         | timestamp with time zone |
+| domains                   | updated_at         | timestamp with time zone |
+| domains                   | is_active          | boolean                  |
+| domains                   | analytics_id       | text                     |
+| domains                   | analytics_share_id | text                     |
+| multi_products            | id                 | uuid                     |
+| multi_products            | parent_product_id  | uuid                     |
+| multi_products            | child_product_id   | uuid                     |
+| multi_products            | display_order      | integer                  |
+| multi_products            | created_at         | timestamp with time zone |
+| orders                    | id                 | uuid                     |
+| orders                    | order_number       | text                     |
+| orders                    | product_id         | uuid                     |
+| orders                    | user_id            | uuid                     |
+| orders                    | customer_name      | text                     |
+| orders                    | customer_email     | text                     |
+| orders                    | amount             | numeric                  |
+| orders                    | currency           | text                     |
+| orders                    | status             | text                     |
+| orders                    | payment_intent_id  | text                     |
+| orders                    | shipping_address   | jsonb                    |
+| orders                    | billing_address    | jsonb                    |
+| orders                    | created_at         | timestamp with time zone |
+| orders                    | updated_at         | timestamp with time zone |
+| orders                    | customer_phone     | text                     |
+| orders                    | notes              | text                     |
+| orders                    | product_name       | text                     |
+| page_views                | id                 | uuid                     |
+| page_views                | product_id         | uuid                     |
+| page_views                | user_id            | uuid                     |
+| page_views                | visitor_id         | text                     |
+| page_views                | referrer           | text                     |
+| page_views                | user_agent         | text                     |
+| page_views                | ip_address         | text                     |
+| page_views                | path               | text                     |
+| page_views                | created_at         | timestamp with time zone |
+| product_categories        | product_id         | uuid                     |
+| product_categories        | category_id        | uuid                     |
+| product_images            | id                 | uuid                     |
+| product_images            | product_id         | uuid                     |
+| product_images            | storage_path       | text                     |
+| product_images            | public_url         | text                     |
+| product_images            | alt_text           | text                     |
+| product_images            | is_primary         | boolean                  |
+| product_images            | display_order      | integer                  |
+| product_images            | created_at         | timestamp with time zone |
+| product_views             | id                 | uuid                     |
+| product_views             | product_id         | uuid                     |
+| product_views             | viewer_ip          | text                     |
+| product_views             | user_agent         | text                     |
+| product_views             | referrer           | text                     |
+| product_views             | viewed_at          | timestamp with time zone |
+| products                  | id                 | uuid                     |
+| products                  | user_id            | uuid                     |
+| products                  | name               | text                     |
+| products                  | slug               | text                     |
+| products                  | description        | text                     |
+| products                  | price              | numeric                  |
+| products                  | currency           | text                     |
+| products                  | template           | text                     |
+| products                  | product_type       | text                     |
+| products                  | published          | boolean                  |
+| products                  | featured           | boolean                  |
+| products                  | specifications     | jsonb                    |
+| products                  | colors             | jsonb                    |
+| products                  | sizes              | jsonb                    |
+| products                  | customization      | jsonb                    |
+| products                  | created_at         | timestamp with time zone |
+| products                  | updated_at         | timestamp with time zone |
+| products                  | store_id           | uuid                     |
+| products                  | features           | ARRAY                    |
+| products                  | category           | text                     |
+| products                  | images             | ARRAY                    |
+| products                  | domain_id          | uuid                     |
+| products                  | template_data      | jsonb                    |
+| products                  | seo                | jsonb                    |
+| products                  | brand              | jsonb                    |
+| products                  | testimonials       | jsonb                    |
+| products                  | faq                | jsonb                    |
+| products                  | media              | jsonb                    |
+| products                  | benefits           | text                     |
+| products                  | tagline            | text                     |
+| products                  | call_to_action     | jsonb                    |
+| products                  | theme              | jsonb                    |
+| products                  | color              | character varying        |
+| products                  | accent_color       | character varying        |
+| products                  | subdomain          | character varying        |
+| products_analytics_backup | id                 | uuid                     |
+| products_analytics_backup | analytics_id       | text                     |
+| products_analytics_backup | analytics_share_id | text                     |
+| profiles                  | id                 | uuid                     |
+| profiles                  | email              | text                     |
+| profiles                  | full_name          | text                     |
+| profiles                  | avatar_url         | text                     |
+| profiles                  | company_name       | text                     |
+| profiles                  | website            | text                     |
+| profiles                  | created_at         | timestamp with time zone |
+| profiles                  | updated_at         | timestamp with time zone |
+| profiles                  | subscription_role  | text                     |
+| profiles                  | product_limit      | integer                  |
+| stores                    | id                 | uuid                     |
+| stores                    | user_id            | uuid                     |
+| stores                    | name               | text                     |
+| stores                    | slug               | text                     |
+| stores                    | description        | text                     |
+| stores                    | about              | text                     |
+| stores                    | tagline            | text                     |
+| stores                    | category           | text                     |
+| stores                    | footer_content     | text                     |
+| stores                    | contact_email      | text                     |
+| stores                    | color              | text                     |
+| stores                    | accent_color       | text                     |
+| stores                    | template           | text                     |
+| stores                    | published          | boolean                  |
+| stores                    | created_at         | timestamp with time zone |
+| stores                    | updated_at         | timestamp with time zone |
+| stores                    | domain_id          | uuid                     |
+| stores                    | theme              | jsonb                    |
+| subscriptions             | id                 | uuid                     |
+| subscriptions             | user_id            | uuid                     |
+| subscriptions             | subscription_id    | text                     |
+| subscriptions             | status             | text                     |
+| subscriptions             | plan_id            | text                     |
+| subscriptions             | plan_name          | text                     |
+| subscriptions             | renews_at          | timestamp with time zone |
+| subscriptions             | ends_at            | timestamp with time zone |
+| subscriptions             | created_at         | timestamp with time zone |
+| subscriptions             | updated_at         | timestamp with time zone |

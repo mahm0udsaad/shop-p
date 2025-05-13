@@ -98,7 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
         <script 
@@ -109,7 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ></script>
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider initialSession={session}>
             {children}
             <Toaster />

@@ -1,0 +1,47 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Instructions for Generating React (Next.js) Code
+
+Please follow these architectural, performance, and developer experience guidelines when generating code:
+
+### 📦 Architectural Preferences
+
+- Use **React Server Components (RSC)** by default.
+- Use **Client Components** only when interactivity is required (e.g., buttons, animations, forms).
+- For forms:
+  - Prefer the **`useActionState`** hook for better progressive enhancement and server-side logic.
+  - Avoid useState and client-side form handlers unless strictly necessary.
+- Prefer using **Server Actions** instead of API Routes for mutations and form submissions.
+
+### ⚡ Performance Best Practices
+
+- Optimize for **static generation**:
+  - Use `generateStaticParams` and `export const dynamic = 'force-static'` where applicable.
+  - Use `cache: 'force-cache'` for fetches that don’t change frequently.
+- Use **dynamic import** for Client Components to reduce initial JS payload.
+- Avoid unnecessary hydration and re-renders.
+- Co-locate **data fetching inside Server Components** using async/await.
+- Use **edge runtime** for performance when supported.
+
+### 🎨 UI/UX & Tooling
+
+- Use **Tailwind CSS** for styling with semantic and minimal utility classes.
+- Use **shadcn/ui** for pre-built UI components.
+- Use **framer-motion** for subtle and performant animations.
+- Use **lucide-react** for icons.
+- Add meaningful **loading** and **error states** using Suspense and error boundaries.
+
+### 🛠️ Developer Experience
+
+- Use **TypeScript** and ensure all components and server actions are fully typed.
+- Use a **feature-based folder structure** to co-locate components, styles, and logic.
+- Keep Client Components lean—no heavy logic or data fetching in them.
+
+### 🔐 Security & Accessibility
+
+- Sanitize all user input/output when displaying dynamic content.
+- Use **semantic HTML** and **ARIA attributes** to ensure accessibility compliance.
+

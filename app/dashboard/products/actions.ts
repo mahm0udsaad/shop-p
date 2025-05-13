@@ -1,20 +1,17 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
-import type { Database } from "@/lib/database.types"
+import { deleteUmamiWebsite } from "@/app/actions/umami"
+import { createClient } from "@/lib/supabase/server"
 
 export async function getUserProducts() {
-  const supabase = createServerActionClient<Database>({ cookies })
+  const supabase = await createClient()
 
   // Get the current user
   const {
     data: { session },
   } = await supabase.auth.getSession()
   const userId = session?.user?.id
-
   if (!userId) {
     return { products: [], error: "Not authenticated" }
   }
@@ -35,7 +32,7 @@ export async function getUserProducts() {
 }
 
 export async function getProductById(id: string) {
-  const supabase = createServerActionClient<Database>({ cookies })
+  const supabase = await createClient()
 
   // Get the current user
   const {
@@ -59,7 +56,7 @@ export async function getProductById(id: string) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = createServerActionClient<Database>({ cookies })
+  const supabase = await createClient()
 
   // Get the current user
   const {
@@ -118,50 +115,148 @@ export async function updateProduct(id: string, formData: FormData) {
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = createServerActionClient<Database>({ cookies })
+  console.log(`[DELETE PRODUCT] Starting deletion process for product ID: ${id}`)
+  const supabase = await createClient()
+  const logs: string[] = []
+
+  const log = (message: string, data?: any) => {
+    const logMessage = data ? `${message}: ${JSON.stringify(data)}` : message
+    console.log(`[DELETE PRODUCT] ${logMessage}`)
+    logs.push(logMessage)
+    return logMessage
+  }
 
   // Get the current user
   const {
     data: { session },
   } = await supabase.auth.getSession()
   const userId = session?.user?.id
+  console.log(`[GET USER PRODUCTS] User ID: ${userId}`)
 
   if (!userId) {
-    return { success: false, error: "Not authenticated" }
+    log("Not authenticated")
+    return { success: false, error: "Not authenticated", logs }
   }
 
-  // Check if the product belongs to the user
-  const { data: product, error: productError } = await supabase
+  log(`Starting deletion process for product ID: ${id}`)
+
+  try {
+    // First, get basic product info without joins to confirm it exists
+    log(`Fetching basic product info`)
+    const { data: basicProduct, error: basicProductError } = await supabase
     .from("products")
-    .select("*")
+      .select(`id, name, domain_id, subdomain`)
     .eq("id", id)
     .eq("user_id", userId)
     .single()
 
-  if (productError || !product) {
-    console.error("Error fetching product:", productError)
-    return { success: false, error: "Product not found or access denied" }
+    if (basicProductError) {
+      log(`Error fetching basic product`, basicProductError)
+      return { success: false, error: "Product not found or access denied", logs }
+    }
+
+    log(`Found product`, basicProduct)
+
+    // If the product has a domain_id, get domain info separately
+    let domainInfo = null
+    if (basicProduct.domain_id) {
+      log(`Product has domain_id: ${basicProduct.domain_id}, fetching domain info`)
+      const { data: domain, error: domainError } = await supabase
+        .from("domains")
+        .select(`id, subdomain, analytics_id`)
+        .eq("id", basicProduct.domain_id)
+        .single()
+
+      if (domainError) {
+        log(`Error fetching domain`, domainError)
+      } else {
+        domainInfo = domain
+        log(`Found domain`, domainInfo)
+      }
+    } else if (basicProduct.subdomain) {
+      log(`Product has subdomain: ${basicProduct.subdomain}, fetching domain by subdomain`)
+      const { data: domain, error: domainError } = await supabase
+        .from("domains")
+        .select(`id, subdomain, analytics_id`)
+        .eq("subdomain", basicProduct.subdomain)
+        .single()
+
+      if (domainError) {
+        log(`Error fetching domain by subdomain`, domainError)
+      } else {
+        domainInfo = domain
+        log(`Found domain by subdomain`, domainInfo)
+      }
   }
 
-  // Delete the product
-  const { error } = await supabase.from("products").delete().eq("id", id).eq("user_id", userId)
+    // Delete the product first
+    log(`Deleting product record`)
+    const { error: deleteProductError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
 
-  if (error) {
-    console.error("Error deleting product:", error)
-    return { success: false, error: error.message }
+    if (deleteProductError) {
+      log(`Error deleting product`, deleteProductError)
+      return { success: false, error: deleteProductError.message, logs }
+    }
+
+    log(`Product record deleted successfully`)
+
+    // If we found domain info, delete the domain
+    if (domainInfo) {
+      log(`Deleting domain with ID: ${domainInfo.id}`)
+      const { error: deleteDomainError } = await supabase
+        .from("domains")
+        .delete()
+        .eq("id", domainInfo.id)
+        .eq("user_id", userId)
+
+      if (deleteDomainError) {
+        log(`Error deleting domain`, deleteDomainError)
+        // Continue anyway since the product is already deleted
+      } else {
+        log(`Domain record deleted successfully`)
+      }
+
+      // Delete Umami analytics if exists
+      if (domainInfo.analytics_id) {
+        log(`Deleting Umami website for analytics_id: ${domainInfo.analytics_id}`)
+        try {
+          if (!domainInfo.analytics_id) {
+            log('No analytics_id found, skipping Umami deletion')
+          } else {
+            log(`Calling deleteUmamiWebsite with ID: ${domainInfo.analytics_id}`)
+            const result = await deleteUmamiWebsite(domainInfo.analytics_id)
+            log(`Umami deletion result`, result)
+          }
+        } catch (error) {
+          log(`Error deleting Umami website`, error)
+          // Continue anyway since this is just cleanup
+        }
+      } else {
+        log('No analytics_id found for this domain, skipping Umami deletion')
+      }
   }
 
   // Revalidate the products page
+    log(`Revalidating paths`)
   revalidatePath("/dashboard/products")
-
-  // Redirect to the products page
-  redirect("/dashboard/products")
+    revalidatePath("/dashboard")
+    
+    log(`Process completed successfully`)
+    return { success: true, logs }
+  } catch (error) {
+    log(`Unexpected error in delete process`, error)
+    return { success: false, error: "An unexpected error occurred", logs }
+  }
 }
 
 // Add the missing toggleProductPublished function after the deleteProduct function
 
 export async function toggleProductPublished(id: string, published: boolean) {
-  const supabase = createServerActionClient<Database>({ cookies })
+  const supabase = await createClient()
 
   // Get the current user
   const {

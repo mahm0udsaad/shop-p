@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, ChevronDown, ChevronUp, Quote, Star } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { type LandingPageData, sampleLandingPageData } from "@/types/landing-page-types"
+import { useToast } from "@/components/ui/use-toast"
+import { createOrder } from "@/app/actions"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ModernTemplateProps {
   landingPageData?: LandingPageData
@@ -20,6 +23,9 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
   const [previewOpen, setPreviewOpen] = useState(false)
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
   const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
+  const formRef = useRef<HTMLFormElement>(null)
 
   // Ensure component updates when data changes
   useEffect(() => {
@@ -30,9 +36,16 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
     setPreviewOpen(false)
   }, [data.product.name, data.product.tagline, data.brand.name])
 
-  // Colors with fallbacks
+  // Colors with fallbacks - access from theme only
   const primaryColor = data.theme?.primaryColor || "#3A86FF"
   const secondaryColor = data.theme?.secondaryColor || "#FF006E"
+  
+  // Benefits handling - convert string to array if needed
+  const benefitsArray = typeof data.product.benefits === 'string' 
+    ? (data.product.benefits as string).split('\n').filter((b: string) => b.trim()) 
+    : Array.isArray(data.product.benefits) 
+      ? data.product.benefits 
+      : []
 
   const nextImage = () => {
     if (data.product.media.images.length > 0) {
@@ -68,6 +81,79 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
       isFeatured: false,
     },
   ]
+
+  // Handle form submission for order
+  const handleOrderSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    
+    // Get form data
+    const formData = new FormData(event.currentTarget)
+    const fullName = formData.get('fullName') as string
+    const email = formData.get('email') as string
+    const phone = formData.get('phone') as string
+    const address = formData.get('address') as string
+    const city = formData.get('city') as string
+    const postalCode = formData.get('postalCode') as string
+    const country = formData.get('country') as string
+    const orderNotes = formData.get('orderNotes') as string
+    const selectedPlanType = formData.get('planType') as string
+    
+    try {
+      // Determine price based on selected plan
+      let planPrice = data.product.price.yearly;
+      if (selectedPlanType === 'monthly' && data.product.price.monthly) {
+        planPrice = data.product.price.monthly;
+      }
+      
+      // Create shipping address object
+      const shippingAddress = {
+        address,
+        city,
+        postalCode,
+        country
+      };
+      
+      console.log("Product ID being sent:", data.product.id);
+      
+      // Call the server action to create the order
+      const result = await createOrder({
+        productId: data.product.id || '',
+        customerName: fullName,
+        customerEmail: email,
+        customerPhone: phone,
+        amount: planPrice || 0,
+        currency: data.product.price.currency || 'USD',
+        orderNotes,
+        shippingAddress,
+        status: 'new'
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Show success message
+      toast({
+        title: "Order Submitted Successfully",
+        description: "Thank you for your order! We will contact you soon.",
+      });
+      
+      // Reset form using the ref
+      if (formRef.current) {
+        formRef.current.reset();
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      toast({
+        title: "Order Submission Failed",
+        description: "There was a problem submitting your order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-full bg-white">
@@ -150,7 +236,7 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mt-12">
-            {data.product.benefits.slice(0, 3).map((benefit, index) => (
+            {benefitsArray.slice(0, 3).map((benefit, index) => (
               <div key={index} className="p-6 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div
                   className="h-12 w-12 rounded-full mb-4 flex items-center justify-center"
@@ -234,13 +320,13 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
                         <p className="text-sm text-gray-500">{testimonial.title}</p>
                       </div>
                     </div>
-                    {testimonial.rating && (
+                    {(testimonial.rating !== undefined && testimonial.rating !== null) && (
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             className={`h-4 w-4 ${
-                              i < testimonial.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                              i < testimonial.rating! ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                             }`}
                           />
                         ))}
@@ -356,40 +442,89 @@ export function ModernTemplate({ landingPageData = sampleLandingPageData }: Mode
           <div className="max-w-xl mx-auto">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>
-                Ready to Get Started?
+                Order Now
               </h2>
-              <p className="text-gray-600">Fill out the form below and we'll get back to you as soon as possible.</p>
+              <p className="text-gray-600">Fill out the form below to place your order. We'll process it right away!</p>
             </div>
 
-            <form className="space-y-6 bg-white p-8 rounded-lg shadow-md">
+            <form ref={formRef} className="space-y-6 bg-white p-8 rounded-lg shadow-md" onSubmit={handleOrderSubmit}>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="John Doe" />
+                  <Label htmlFor="fullName">Full Name*</Label>
+                  <Input id="fullName" name="fullName" placeholder="John Doe" required />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="john@example.com" />
+                  <Label htmlFor="email">Email Address*</Label>
+                  <Input id="email" name="email" type="email" placeholder="john@example.com" required />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" placeholder="+1 (555) 123-4567" />
+                <Label htmlFor="phone">Phone Number*</Label>
+                <Input id="phone" name="phone" placeholder="+1 (555) 123-4567" required />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="message">Your Message</Label>
+                <Label htmlFor="address">Shipping Address*</Label>
+                <Input id="address" name="address" placeholder="123 Main St, Apt 4B" required />
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City*</Label>
+                  <Input id="city" name="city" placeholder="New York" required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code*</Label>
+                  <Input id="postalCode" name="postalCode" placeholder="10001" required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country*</Label>
+                  <Input id="country" name="country" placeholder="United States" required />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="planType">Select Plan*</Label>
+                <Select name="planType" defaultValue={data.product.price.yearly ? "yearly" : "monthly"}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data.product.price.yearly && (
+                      <SelectItem value="yearly">
+                        Annual Plan - {data.product.price.currency} {data.product.price.yearly?.toFixed(2)}/year
+                      </SelectItem>
+                    )}
+                    {data.product.price.monthly && (
+                      <SelectItem value="monthly">
+                        Monthly Plan - {data.product.price.currency} {data.product.price.monthly?.toFixed(2)}/month
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="orderNotes">Order Notes (Optional)</Label>
                 <Textarea
-                  id="message"
-                  placeholder="I'm interested in this product. Please send me more information."
+                  id="orderNotes"
+                  name="orderNotes"
+                  placeholder="Any special requirements or questions about your order."
                   className="min-h-[100px]"
                 />
               </div>
 
-              <Button type="submit" className="w-full" style={{ backgroundColor: secondaryColor }}>
-                Send Inquiry
+              <Button 
+                type="submit" 
+                className="w-full" 
+                style={{ backgroundColor: secondaryColor }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Place Order"}
               </Button>
             </form>
           </div>

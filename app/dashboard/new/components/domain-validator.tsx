@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Check, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -10,20 +10,44 @@ interface DomainValidatorProps {
   onChange: (value: string) => void
   error?: string
   className?: string
+  onValidationChange?: (isAvailable: boolean | null, isChecking: boolean) => void
 }
 
-export function DomainValidator({ value, onChange, error, className }: DomainValidatorProps) {
+export function DomainValidator({ value, onChange, error, className, onValidationChange }: DomainValidatorProps) {
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
   const [checkError, setCheckError] = useState<string | null>(null)
+  const lastValidatedDomain = useRef<string>("")
 
+  // Reset validation state only for significant changes
   useEffect(() => {
-    // Reset validation state when value changes
-    if (value) {
+    // Skip validation reset if the domain was already validated and the change is minor
+    // (e.g., adding a character to an already valid domain)
+    if (!value) {
       setIsAvailable(null)
       setCheckError(null)
+      if (onValidationChange) {
+        onValidationChange(null, false)
+      }
+      lastValidatedDomain.current = ""
+      return
     }
-  }, [value])
+
+    // Only reset validation if the domain has substantially changed
+    // For example, if the user is typing a completely new domain
+    if (lastValidatedDomain.current && (
+        // Check if the new value isn't a simple extension of the validated domain
+        // and it's not just removing characters from the end
+        !value.startsWith(lastValidatedDomain.current) && 
+        !lastValidatedDomain.current.startsWith(value)
+    )) {
+      setIsAvailable(null)
+      setCheckError(null)
+      if (onValidationChange) {
+        onValidationChange(null, false)
+      }
+    }
+  }, [value, onValidationChange])
 
   // Debounce the domain check
   useEffect(() => {
@@ -41,6 +65,9 @@ export function DomainValidator({ value, onChange, error, className }: DomainVal
 
     setIsChecking(true)
     setCheckError(null)
+    if (onValidationChange) {
+      onValidationChange(null, true)
+    }
 
     try {
       const response = await fetch(`/api/check-domain?domain=${encodeURIComponent(domain)}`)
@@ -49,14 +76,26 @@ export function DomainValidator({ value, onChange, error, className }: DomainVal
       if (response.ok) {
         // If data.available is true, it means the domain was not found in the database
         setIsAvailable(data.available)
+        if (data.available) {
+          lastValidatedDomain.current = domain
+        }
+        if (onValidationChange) {
+          onValidationChange(data.available, false)
+        }
       } else {
         setCheckError(data.error || "Failed to check domain availability")
         setIsAvailable(null)
+        if (onValidationChange) {
+          onValidationChange(null, false)
+        }
       }
     } catch (error) {
       console.error("Error checking domain:", error)
       setCheckError("An error occurred while checking domain availability")
       setIsAvailable(null)
+      if (onValidationChange) {
+        onValidationChange(null, false)
+      }
     } finally {
       setIsChecking(false)
     }

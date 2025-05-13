@@ -157,32 +157,6 @@ export function DashboardHeader({
             <span className="bg-gradient-to-r from-[#6F4E37] to-[#A67B5B] text-transparent bg-clip-text">Product</span>
             <span className="text-[#A67B5B]">Showcase</span>
           </Link>
-          <nav className="hidden md:flex gap-6 ml-6">
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium hover:text-[#6F4E37] text-[#A67B5B] transition-colors"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/dashboard/products"
-              className="text-sm font-medium hover:text-[#6F4E37] text-[#A67B5B] transition-colors"
-            >
-              Products
-            </Link>
-            <Link
-              href="/dashboard/orders"
-              className="text-sm font-medium hover:text-[#6F4E37] text-[#A67B5B] transition-colors"
-            >
-              Orders
-            </Link>
-            <Link
-              href="/dashboard/analytics"
-              className="text-sm font-medium hover:text-[#6F4E37] text-[#A67B5B] transition-colors"
-            >
-              Analytics
-            </Link>
-          </nav>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu open={notificationsOpen} onOpenChange={handleNotificationsOpen}>
@@ -280,6 +254,7 @@ export function DashboardHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {children}
         </div>
       </div>
     </header>

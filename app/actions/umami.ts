@@ -1,11 +1,24 @@
 const UMAMI_URL = process.env.UMAMI_URL || "https://analytics.shipfaster.tech";
 const USERNAME = process.env.UMAMI_USERNAME || 'admin';
 const PASSWORD = process.env.UMAMI_PASSWORD;
-const UMAMI_API_KEY = process.env.UMAMI_API_KEY; // Optional API key for direct access
 
-// Session storage
+// Store token in memory
 let sessionToken: string | null = null;
-let tokenExpiry: number = 0;
+let tokenExpiry: number | null = null;
+
+const UMAMI_API_URL = process.env.NEXT_PUBLIC_UMAMI_API_URL || 'https://analytics.umami.is'
+
+interface UmamiResponse {
+  pageviews: {
+    value: number
+  }
+  avgDuration: number
+}
+
+interface UmamiMetric {
+  x: string
+  y: number
+}
 
 /**
  * Login to Umami and get a session token
@@ -29,25 +42,14 @@ async function login(): Promise<boolean> {
 
     const data = await response.json();
     
-    // Check if token exists in response data
     if (data && data.token) {
       sessionToken = data.token;
-      console.log("Login successful, got token");
+      // Set token expiry to 23 hours from now (token typically lasts 24 hours)
+      tokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
       return true;
     }
     
-    // Fallback to cookie-based auth if needed
-    const cookies = response.headers.get('set-cookie');
-    if (cookies) {
-      const authCookie = cookies.split(';').find(c => c.trim().startsWith('auth='));
-      if (authCookie) {
-        sessionToken = authCookie.trim();
-        console.log("Login successful, got cookie");
-        return true;
-      }
-    }
-    
-    console.error("Login succeeded but no token or cookie received");
+    console.error("Login succeeded but no token received");
     return false;
   } catch (error) {
     console.error("Login failed:", error instanceof Error ? error.message : String(error));
@@ -56,63 +58,57 @@ async function login(): Promise<boolean> {
 }
 
 /**
+ * Ensure we have a valid session token
+ */
+async function ensureValidSession(): Promise<boolean> {
+  if (!sessionToken || !tokenExpiry || Date.now() >= tokenExpiry) {
+    return login();
+  }
+  return true;
+}
+
+/**
  * Make an authenticated request to Umami API
  */
-async function makeUmamiRequest(method: string, endpoint: string, data: any = null, params: Record<string, string | number> = {}) {
-  // Ensure we have a session token
-  if (!sessionToken && !(await login())) {
-    console.error("Could not authenticate with Umami");
-    return null;
+async function makeUmamiRequest(
+  method: 'get' | 'post' | 'put' | 'delete',
+  endpoint: string,
+  body: any = null,
+  params: Record<string, string> = {}
+) {
+  // Ensure we have a valid session
+  const isValidSession = await ensureValidSession();
+  if (!isValidSession || !sessionToken) {
+    throw new Error('Failed to authenticate with Umami');
   }
 
-  try {
-    // Prepare headers with token
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Check if token is a cookie or JWT
-    if (sessionToken && sessionToken.startsWith('auth=')) {
-      headers['Cookie'] = sessionToken;
-    } else if (sessionToken) {
-      headers['Authorization'] = `Bearer ${sessionToken}`;
-    }
-
-    // Build URL with query parameters
-    const url = new URL(`${UMAMI_URL}${endpoint}`);
+  const url = new URL(endpoint, UMAMI_URL);
     Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
+    url.searchParams.append(key, value);
     });
 
-    const config: RequestInit = {
-      method: method.toUpperCase(),
-      headers,
-    };
-
-    if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put')) {
-      config.body = JSON.stringify(data);
-    }
-
-    const response = await fetch(url.toString(), config);
+  const response = await fetch(url.toString(), {
+    method,
+    headers: {
+      'Authorization': `Bearer ${sessionToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : null,
+  });
 
     if (!response.ok) {
       // If unauthorized, try to login again
-      if (response.status === 401 || response.status === 403) {
-        console.log("Session expired, attempting to re-login...");
-        if (await login()) {
-          return makeUmamiRequest(method, endpoint, data, params); // Retry with new token
+    if (response.status === 401) {
+      sessionToken = null;
+      const retrySession = await ensureValidSession();
+      if (retrySession) {
+        return makeUmamiRequest(method, endpoint, body, params);
         }
       }
-      throw new Error(`Request failed with status: ${response.status}`);
+    throw new Error(`Umami API error: ${response.statusText}`);
     }
 
-    const responseData = await response.json();
-    return responseData;
-  } catch (error) {
-    console.error(`Error with ${method.toUpperCase()} request to ${endpoint}:`, 
-      error instanceof Error ? error.message : String(error));
-    return { error: error instanceof Error ? error.message : String(error) };
-  }
+  return response.json();
 }
 
 /**
@@ -131,10 +127,8 @@ interface UmamiWebsite {
  * Create a new website in Umami
  */
 export async function createUmamiWebsite(name: string, domain: string): Promise<UmamiWebsite | null> {
-  // Generate a unique website name with timestamp
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const websiteData = {
-    name: `${name} (${timestamp})`,
+    name: name,
     domain: domain,
     shareId: null
   };
@@ -181,7 +175,7 @@ export async function getWebsiteAnalytics(
   startDate: Date | number,
   endDate: Date | number,
   unit: 'day' | 'month' | 'hour' = 'day'
-) {
+): Promise<any> {
   try {
     // Convert dates to timestamps if they're Date objects
     const startAt = typeof startDate === 'number' ? startDate : startDate.getTime();
@@ -194,7 +188,10 @@ export async function getWebsiteAnalytics(
     });
   } catch (error) {
     console.error("Failed to get website analytics:", error);
-    return null;
+    return {
+      pageviews: { value: 0 },
+      avgDuration: 0
+    };
   }
 }
 
@@ -207,7 +204,7 @@ export async function getWebsiteMetrics(
   startDate: Date | number,
   endDate: Date | number,
   limit: number = 10
-) {
+): Promise<any[]> {
   try {
     // Convert dates to timestamps if they're Date objects
     const startAt = typeof startDate === 'number' ? startDate : startDate.getTime();
@@ -221,7 +218,7 @@ export async function getWebsiteMetrics(
     });
   } catch (error) {
     console.error(`Failed to get website ${metricType} metrics:`, error);
-    return null;
+    return [];
   }
 }
 
