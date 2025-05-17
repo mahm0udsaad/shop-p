@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Eye, MoreHorizontal, Edit, Trash2, Globe } from "lucide-react"
+import { Eye, MoreHorizontal, Edit, Trash2, Globe, Palette } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -115,6 +115,12 @@ export function ProductsTable({ products }: ProductsTableProps) {
                           <Link href={`/dashboard/products/${product.id}/edit`}>
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Edit</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/edit-product/${product.id}`}>
+                            <Palette className="mr-2 h-4 w-4" />
+                            <span>Edit Template</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

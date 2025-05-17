@@ -51,28 +51,6 @@ interface UmamiAnalytics {
   timeOnSite?: number;
 }
 
-interface Domain {
-  id: string;
-  subdomain: string;
-  analytics_id: string | null;
-}
-
-interface ProductFromDB {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  template: string;
-  created_at: string;
-  media: Record<string, any>;
-  template_data: Record<string, any>;
-  subdomain: string | null;
-  published: boolean;
-  featured: boolean;
-  domain_id: string | null;
-  domains: Domain | null;
-}
-
 async function getUmamiAnalyticsForProduct(websiteId: string): Promise<UmamiAnalytics | null> {
   const endDate = new Date()
   const startDate = new Date()
@@ -216,7 +194,7 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
         analyticsData: analyticsData
       }
     }))
-
+    
     // Fetch orders data
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
@@ -254,10 +232,22 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
       const dateStr = date.toLocaleDateString("en-US", { weekday: "short" })
       return {
         date: dateStr,
-        views: 0, // This will need to be updated with actual Umami data
+        views: 0, // Will be populated with Umami data
         orders: ordersByDay[dateStr] || 0
       }
     }).reverse()
+
+    // Populate views data from Umami
+    enhancedProducts.forEach(product => {
+      if (product.analyticsData?.dailyPageviews) {
+        product.analyticsData.dailyPageviews.forEach((dayData: any) => {
+          const timeDataEntry = timeData.find(d => d.date === dayData.date)
+          if (timeDataEntry) {
+            timeDataEntry.views += dayData.views
+          }
+        })
+      }
+    })
 
     // Format recent orders
     const recentOrders = ordersData?.slice(0, 5).map((order: any) => ({

@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Check, LogOut, Menu, Plus, Settings, User } from "lucide-react"
+import { LogOut, Menu, Plus, Settings, User } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,104 +16,31 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/contexts/auth-context"
+import { NotificationBell } from "./notification-bell"
+import { Notification } from "@/types/notifications"
 
-// Define notification type
-type Notification = {
-  id: string
-  title: string
-  message: string
-  timestamp: Date
-  read: boolean
+interface DashboardHeaderProps {
+  heading: string
+  description: string
+  notifications?: Notification[]
+  unreadCount?: number
+  userId?: string
+  children?: React.ReactNode
 }
-
-// Default notifications for new users
-const defaultNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "Welcome to Product Showcase!",
-    message: "Get started by creating your first product showcase.",
-    timestamp: new Date(),
-    read: false,
-  },
-  {
-    id: "2",
-    title: "Explore Templates",
-    message: "Check out our premium templates to showcase your products.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-    read: false,
-  },
-  {
-    id: "3",
-    title: "Complete Your Profile",
-    message: "Update your profile information to personalize your experience.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    read: false,
-  },
-]
 
 export function DashboardHeader({
   heading,
   description,
+  notifications = [],
+  unreadCount = 0,
+  userId,
   children,
-}: {
-  heading: string
-  description: string
-  children?: React.ReactNode
-}) {
+}: DashboardHeaderProps) {
   const router = useRouter()
   const { user, profile, signOut } = useAuth()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-
-  // Load notifications from localStorage or use defaults for new users
-  useEffect(() => {
-    if (user) {
-      const savedNotifications = localStorage.getItem(`notifications-${user.id}`)
-      if (savedNotifications) {
-        setNotifications(JSON.parse(savedNotifications))
-      } else {
-        // Set default notifications for new users
-        setNotifications(defaultNotifications)
-      }
-    }
-  }, [user])
-
-  // Save notifications to localStorage when they change
-  useEffect(() => {
-    if (user && notifications.length > 0) {
-      localStorage.setItem(`notifications-${user.id}`, JSON.stringify(notifications))
-    }
-  }, [notifications, user])
-
-  // Mark notifications as read when dropdown is opened
-  const handleNotificationsOpen = (open: boolean) => {
-    setNotificationsOpen(open)
-
-    if (open && notifications.some((n) => !n.read)) {
-      const updatedNotifications = notifications.map((notification) => ({
-        ...notification,
-        read: true,
-      }))
-      setNotifications(updatedNotifications)
-    }
-  }
 
   const handleSignOut = async () => {
     await signOut()
-  }
-
-  // Count unread notifications
-  const unreadCount = notifications.filter((n) => !n.read).length
-
-  // Format timestamp to relative time (e.g., "2 hours ago")
-  const formatRelativeTime = (date: Date) => {
-    const now = new Date()
-    const diffInSeconds = Math.floor((now.getTime() - new Date(date).getTime()) / 1000)
-
-    if (diffInSeconds < 60) return "just now"
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-    return `${Math.floor(diffInSeconds / 86400)} days ago`
   }
 
   return (
@@ -159,58 +86,15 @@ export function DashboardHeader({
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu open={notificationsOpen} onOpenChange={handleNotificationsOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-[#A67B5B] hover:text-[#6F4E37] hover:bg-[#FED8B1]/10"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="text-xs bg-[#FED8B1]/30 text-[#6F4E37] px-2 py-0.5 rounded-full">
-                    {unreadCount} new
-                  </span>
-                )}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-default">
-                      <div className="flex w-full justify-between items-start">
-                        <span className="font-medium text-sm">{notification.title}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {formatRelativeTime(new Date(notification.timestamp))}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground mt-1">{notification.message}</span>
-                      {!notification.read && (
-                        <span className="mt-1 text-xs flex items-center text-[#6F4E37]">
-                          <Check className="h-3 w-3 mr-1" /> Marked as read
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
-                )}
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="justify-center text-center cursor-pointer">
-                <Link href="/dashboard/notifications" className="text-xs text-[#6F4E37]">
-                  View all notifications
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Show notification bell if userId is available */}
+          {userId && (
+            <NotificationBell 
+              userId={userId}
+              initialNotifications={notifications}
+              initialUnreadCount={unreadCount}
+            />
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -250,11 +134,19 @@ export function DashboardHeader({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {children}
+        </div>
+      </div>
+      <div className="container py-4">
+        <div className="flex justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#6F4E37]">{heading}</h1>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+          <div>{children}</div>
         </div>
       </div>
     </header>

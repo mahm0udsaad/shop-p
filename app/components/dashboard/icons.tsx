@@ -15,7 +15,12 @@ import {
   Compass as SafariIcon,
   Laptop,
   Apple,
-  MonitorSmartphone
+  MonitorSmartphone,
+  Loader2,
+  Trash2,
+  Upload,
+  Pencil,
+  Check
 } from "lucide-react"
 
 export const Icons = {
@@ -42,7 +47,13 @@ export const Icons = {
   mac: Apple,
   linux: MonitorSmartphone,
   // Other
-  globe: Globe2
+  globe: Globe2,
+  // New additions
+  spinner: Loader2,
+  trash: Trash2,
+  upload: Upload,
+  pencil: Pencil,
+  check: Check
 }
 
 export type IconKey = keyof typeof Icons; 

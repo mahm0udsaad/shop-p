@@ -9,13 +9,19 @@ interface OverviewChartProps {
 }
 
 export function OverviewChart({ data }: OverviewChartProps) {
+  // Make sure we have valid data arrays
+  const viewsData = data.viewsOverTime || []
+  const ordersData = data.ordersOverTime || []
   // Prepare chart data
-  const chartData = (data.viewsOverTime || []).map((item, index) => {
-    const orderData = data.ordersOverTime?.[index] || { orders: 0 }
+  const chartData = viewsData.map((item, index) => {
+    // Find corresponding order data by date
+    const orderItem = ordersData.find(order => order.date === item.date) || 
+                      { date: item.date, orders: 0 }
+    
     return {
       name: item.date,
       views: item.views,
-      orders: orderData.orders,
+      orders: orderItem.orders,
     }
   })
 
