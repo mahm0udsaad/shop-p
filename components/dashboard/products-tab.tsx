@@ -9,7 +9,7 @@ import { Palette } from "lucide-react"
 
 type Product = {
   id: string
-  name: string
+  slug: string
   template: string
   created: string
   published: boolean
@@ -31,7 +31,7 @@ export function ProductsTab({ products }: ProductsTabProps) {
         {products.map((product, index) => (
           <Card key={product.id || index}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">{product.name}</CardTitle>
+              <CardTitle className="text-lg">{product.slug}</CardTitle>
               <CardDescription>
                 Template: {product.template} • Created: {product.created}
                 {product.published ? " • Published" : " • Draft"}
@@ -41,7 +41,7 @@ export function ProductsTab({ products }: ProductsTabProps) {
               <div className="aspect-video relative mb-4 overflow-hidden rounded-md">
                 <img
                   src={product.image}
-                  alt={product.name}
+                  alt={product.slug}
                   className="object-cover w-full h-full"
                 />
               </div>
@@ -64,16 +64,10 @@ export function ProductsTab({ products }: ProductsTabProps) {
               <div className="flex w-full justify-between">
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="border-[#A67B5B]/30 text-[#6F4E37]" asChild>
-                    <Link href={`/dashboard/products/${product.id}/edit`}>
-                    Edit</Link>
+                  <Link href={`/dashboard/edit-product/${product.id}`}>
+                  Edit</Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="border-[#A67B5B]/30 text-[#6F4E37]" asChild>
-                    <Link href={`/dashboard/edit-product/${product.id}`}>
-                      <Palette className="h-4 w-4 mr-1" />
-                      Template
-                    </Link>
-                  </Button>
-                  <DeleteProductButton productId={product.id} productName={product.name} />
+                  <DeleteProductButton productId={product.id} productName={product.slug} />
                 </div>
                 <Button 
                   variant="outline" 

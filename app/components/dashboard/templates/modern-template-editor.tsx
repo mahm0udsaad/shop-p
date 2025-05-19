@@ -1,729 +1,801 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/app/components/dashboard/icons";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { ModernTemplate } from "@/components/templates/modern-template";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Define the internal editor data structure
 interface TemplateData {
-  tagline: string;
-  description: string;
-  cta: {
-    text: string;
-    url: string;
+  hero: {
+    title: string;
+    tagline: string;
+    description: string;
+    cta: { text: string; url: string };
+    image?: string;
   };
-  features: Array<{
+  about: {
     title: string;
     description: string;
-    icon?: string;
-  }>;
-  benefits: Array<{
+    image?: string;
+    features: string[];
+  };
+  whyChoose: {
     title: string;
-    description: string;
-  }>;
+    subtitle: string;
+    benefits: string[];
+  };
+  features: {
+    title: string;
+    subtitle: string;
+    items: Array<{
+      title: string;
+      description: string;
+      icon?: string;
+    }>;
+  };
   pricing: {
-    price: number;
+    title: string;
+    subtitle: string;
     currency: string;
-    period?: string;
+    plans: Array<{
+      name: string;
+      price: number;
+      period: string;
+      features: string[];
+      isFeatured?: boolean;
+      discountNote?: string;
+    }>;
   };
-  media: {
-    images: string[];
-    video?: string;
+  faq: {
+    title: string;
+    subtitle: string;
+    items: Array<{ question: string; answer: string }>;
   };
-  theme: {
-    primaryColor: string;
-    secondaryColor: string;
-    fontFamily?: string;
-  };
-  testimonials?: Array<{
-    quote: string;
+  testimonials: Array<{
     name: string;
+    role: string;
+    content: string;
+    image?: string;
   }>;
-  faq?: Array<{
-    question: string;
-    answer: string;
-  }>;
+  media: { images: string[]; video?: string };
+  brand: { name: string; contactEmail: string; socialLinks: { twitter?: string; facebook?: string; linkedin?: string } };
+  theme: { primaryColor: string; secondaryColor: string; fontFamily?: string };
+  footer?: string;
+  customFields?: Record<string, any>;
 }
 
-interface ModernTemplateProps {
+interface ModernTemplateEditorProps {
   data: TemplateData;
   updateData: (path: string, value: any) => void;
-  isEditing: boolean;
-  alwaysShowEdit?: boolean;
-  localImages?: (string | File)[];
-  onImageChange?: (index: number, file: File) => void;
-  onAddImage?: () => void;
-  onRemoveImage?: (index: number) => void;
 }
 
-export function ModernTemplate({ data, updateData, isEditing, alwaysShowEdit = false, localImages, onImageChange, onAddImage, onRemoveImage }: ModernTemplateProps) {
-  const showEdit = alwaysShowEdit || isEditing;
-  const [activeCard, setActiveCard] = useState<{ type: 'feature' | 'benefit' | 'testimonial' | 'faq' | 'media', index: number } | null>(null);
-  const [activeEdit, setActiveEdit] = useState<string | null>(null);
-  
-  // Create a wrapper for editable elements
-  const EditableElement = ({
-    path,
-    value,
-    onChange,
-    children,
-    multiline = false,
-    className = "",
-  }: {
-    path: string;
-    value: string;
-    onChange: (path: string, value: string) => void;
-    children: React.ReactNode;
-    multiline?: boolean;
-    className?: string;
-  }) => {
-    const isActive = activeEdit === path;
-    const showEdit = alwaysShowEdit || isEditing;
-    if (!showEdit) return <>{children}</>;
-    
-    return (
-      <div
-        className={cn(
-          "relative group",
-          isActive ? "ring-2 ring-offset-2 ring-primary" : "",
-          className
-        )}
-        onClick={() => setActiveEdit(path)}
-      >
-        {isActive ? (
-          multiline ? (
-            <Textarea
-              value={value}
-              onChange={(e) => onChange(path, e.target.value)}
-              className="min-h-[80px] p-2 w-full"
-              autoFocus
-              onBlur={() => setActiveEdit(null)}
-            />
-          ) : (
-            <Input
-              value={value}
-              onChange={(e) => onChange(path, e.target.value)}
-              className="p-2"
-              autoFocus
-              onBlur={() => setActiveEdit(null)}
-            />
-          )
-        ) : (
-          <>
-            {children}
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Button
-              size="sm"
-              variant="secondary"
-              className="absolute top-0 right-0 opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveEdit(path);
-              }}
-            >
-              <Icons.pencil className="h-3 w-3 mr-1" />
-            </Button>
-          </>
-        )}
-      </div>
-    );
-  };
-  
-  // Hero Section image logic
-  // Use localImages if provided, else fallback to data.media.images
-  const heroImage = localImages && localImages.length > 0 ? localImages[0] : (data.media.images && data.media.images[0]);
-
-  // Media Gallery logic
-  const galleryImages = localImages && localImages.length > 1 ? localImages.slice(1) : (data.media.images?.slice(1) || []);
-
-  // Video logic
-  const videoUrl = data.media.video || "";
-
+// Template wrapper that adapts editor data for the ModernTemplate component
+function TemplateWrapper({ data }: { data: TemplateData }) {
+  // Format the data to match what ModernTemplate expects
   return (
-    <div className="preview-container border rounded-lg overflow-hidden shadow-sm"
-      style={{ 
-        '--primary-color': data.theme.primaryColor,
-        '--secondary-color': data.theme.secondaryColor
-      } as any}
-    >
-      {/* Hero Section */}
-      <section className="relative py-20 px-6 md:px-12 overflow-hidden bg-gradient-to-r"
-        style={{ backgroundImage: `linear-gradient(to right, ${data.theme.primaryColor}22, ${data.theme.secondaryColor}33)` }}
-      >
-        <div className="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center">
-          <div className="w-full md:w-1/2 md:pr-12 mb-10 md:mb-0">
-            <EditableElement
-              path="tagline"
-              value={data.tagline}
-              onChange={updateData}
-              className="mb-4"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-6" style={{ color: data.theme.primaryColor }}>
-                {data.tagline}
-              </h1>
-            </EditableElement>
-            
-            <EditableElement
-              path="description"
-              value={data.description}
-              onChange={updateData}
-              multiline={true}
-              className="mb-8"
-            >
-              <p className="text-lg leading-relaxed text-gray-700 mb-8">
-                {data.description}
-              </p>
-            </EditableElement>
-            
-            <div className="flex items-center">
-              <EditableElement
-                path="pricing.price"
-                value={data.pricing.price.toString()}
-                onChange={(path, value) => updateData(path, Number(value))}
-                className="mr-4"
-              >
-                <div className="text-3xl font-bold mr-2" style={{ color: data.theme.primaryColor }}>
-                  {data.pricing.currency} {data.pricing.price}
+    <ModernTemplate 
+      data={data} 
+      isEditing={true}
+    />
+  );
+}
+
+export function ModernTemplateEditor({ data, updateData }: ModernTemplateEditorProps) {
+  const [activeSection, setActiveSection] = useState<string>("hero");
+
+  const sections = [
+    { id: "hero", label: "Hero Section", icon: "home" },
+    { id: "about", label: "About Section", icon: "layout" },
+    { id: "whyChoose", label: "Why Choose Us", icon: "check" },
+    { id: "features", label: "Features", icon: "sparkles" },
+    { id: "pricing", label: "Pricing Plans", icon: "creditCard" },
+    { id: "faq", label: "FAQ", icon: "help" },
+    { id: "testimonials", label: "Testimonials", icon: "quote" },
+    { id: "media", label: "Media", icon: "image" },
+    { id: "brand", label: "Brand", icon: "building" },
+    { id: "theme", label: "Theme", icon: "paintbrush" }
+  ];
+
+  // Helper function to handle file upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, path: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          updateData(path, e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddBenefit = () => {
+    const benefits = [...data.whyChoose.benefits];
+    benefits.push("New Benefit");
+    updateData("whyChoose.benefits", benefits);
+  };
+
+  const handleRemoveBenefit = (index: number) => {
+    const benefits = [...data.whyChoose.benefits];
+    benefits.splice(index, 1);
+    updateData("whyChoose.benefits", benefits);
+  };
+
+  const handleAddFeature = () => {
+    const items = [...data.features.items];
+    items.push({ title: "New Feature", description: "Describe this feature", icon: "sparkles" });
+    updateData("features.items", items);
+  };
+
+  const handleRemoveFeature = (index: number) => {
+    const items = [...data.features.items];
+    items.splice(index, 1);
+    updateData("features.items", items);
+  };
+
+  const handleAddAboutFeature = () => {
+    const features = [...(data.about?.features || [])];
+    features.push("New Feature");
+    updateData("about.features", features);
+  };
+
+  const handleRemoveAboutFeature = (index: number) => {
+    const features = [...(data.about?.features || [])];
+    features.splice(index, 1);
+    updateData("about.features", features);
+  };
+
+  const handleAddPlan = () => {
+    const plans = [...data.pricing.plans];
+    plans.push({
+      name: "New Plan",
+      price: 0,
+      period: "month",
+      features: ["Feature 1"],
+      isFeatured: false
+    });
+    updateData("pricing.plans", plans);
+  };
+
+  const handleRemovePlan = (index: number) => {
+    const plans = [...data.pricing.plans];
+    plans.splice(index, 1);
+    updateData("pricing.plans", plans);
+  };
+
+  const handleAddPlanFeature = (planIndex: number) => {
+    const plans = [...data.pricing.plans];
+    plans[planIndex].features.push("New Feature");
+    updateData("pricing.plans", plans);
+  };
+
+  const handleRemovePlanFeature = (planIndex: number, featureIndex: number) => {
+    const plans = [...data.pricing.plans];
+    plans[planIndex].features.splice(featureIndex, 1);
+    updateData("pricing.plans", plans);
+  };
+
+  const handleAddFaq = () => {
+    const items = [...data.faq.items];
+    items.push({ question: "New Question", answer: "Answer this question" });
+    updateData("faq.items", items);
+  };
+
+  const handleRemoveFaq = (index: number) => {
+    const items = [...data.faq.items];
+    items.splice(index, 1);
+    updateData("faq.items", items);
+  };
+
+  const handleAddTestimonial = () => {
+    const testimonials = [...data.testimonials];
+    testimonials.push({
+      name: "Customer Name",
+      role: "Position",
+      content: "Great testimonial",
+      image: ""
+    });
+    updateData("testimonials", testimonials);
+  };
+
+  const handleRemoveTestimonial = (index: number) => {
+    const testimonials = [...data.testimonials];
+    testimonials.splice(index, 1);
+    updateData("testimonials", testimonials);
+  };
+
+  const iconOptions = ["sparkles", "shield", "zap", "star", "heart", "rocket", "check", "box"];
+
+  // Live Preview
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Editor Sidebar */}
+      <div className="lg:col-span-3 space-y-6">
+        <div className="sticky top-0 space-y-6">
+          {/* Section Navigation */}
+          <Card className="p-4">
+            <nav className="space-y-2">
+              {sections.map(section => {
+                const Icon = Icons[section.icon as keyof typeof Icons];
+                return (
+                  <Button
+                    key={section.id}
+                    variant={activeSection === section.id ? "default" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {section.label}
+                  </Button>
+                );
+              })}
+            </nav>
+          </Card>
+
+          {/* Section Editor */}
+          <Card className="p-4">
+            {activeSection === "hero" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Hero Section</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.hero.title}
+                    onChange={e => updateData("hero.title", e.target.value)}
+                  />
                 </div>
-              </EditableElement>
-              
-              <EditableElement
-                path="cta.text"
-                value={data.cta?.text || ""}
-                onChange={updateData}
-              >
-                <Button 
-                  className="px-8 py-3 rounded-full text-white font-semibold"
-                  style={{ backgroundColor: data.theme.primaryColor, borderColor: data.theme.primaryColor }}
-                >
-                  {data.cta?.text || "Buy Now"}
-                </Button>
-              </EditableElement>
-            </div>
-          </div>
-          
-          <div className="w-full md:w-1/2 relative flex flex-col items-center">
-            {heroImage && typeof heroImage === 'string' ? (
-              <div className="relative rounded-lg overflow-hidden shadow-xl">
-                <Image
-                  src={heroImage}
-                  alt="Product showcase"
-                  width={600}
-                  height={400}
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
-            ) : (
-              <div className="bg-gray-200 rounded-lg h-[400px] w-full flex items-center justify-center">
-                <span className="text-gray-500">No product image available</span>
+                <div className="space-y-2">
+                  <Label>Tagline</Label>
+                  <Input
+                    value={data.hero.tagline}
+                    onChange={e => updateData("hero.tagline", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={data.hero.description}
+                    onChange={e => updateData("hero.description", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>CTA Text</Label>
+                  <Input
+                    value={data.hero.cta.text}
+                    onChange={e => updateData("hero.cta.text", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>CTA URL</Label>
+                  <Input
+                    value={data.hero.cta.url}
+                    onChange={e => updateData("hero.cta.url", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hero Image</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, "hero.image")}
+                    />
+                    {data.hero.image && (
+                      <div className="w-16 h-16 relative">
+                        <img
+                          src={data.hero.image}
+                          alt="Hero"
+                          className="w-full h-full object-cover rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-            {showEdit && (
-              <div className="flex gap-2 mt-2">
-                <label className="cursor-pointer flex items-center gap-2">
-                  <Icons.upload className="h-5 w-5" />
-                  <span>Upload Image</span>
-                  <input
+
+            {activeSection === "about" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">About Section</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.about?.title || ""}
+                    onChange={e => updateData("about.title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={data.about?.description || ""}
+                    onChange={e => updateData("about.description", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Image</Label>
+                  <Input
                     type="file"
                     accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      if (e.target.files && e.target.files[0] && onImageChange) {
-                        onImageChange(0, e.target.files[0]);
-                      }
-                    }}
+                    onChange={(e) => handleImageUpload(e, "about.image")}
                   />
-                </label>
-                {onRemoveImage && heroImage && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => onRemoveImage(0)}
-                  >
-                    <Icons.trash className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-      
-      {/* Features Section */}
-      <section className="py-16 px-6 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-              Key Features
-            </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              What makes our product special
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {data.features.map((feature, index) => {
-              const isEditingCard = activeCard?.type === 'feature' && activeCard.index === index;
-              return (
-                <div key={index} className="p-6 rounded-lg border hover:shadow-md transition-shadow relative">
-                  {isEditingCard ? (
-                    <>
-                      <Input
-                        className="mb-2"
-                        value={feature.title}
-                        onChange={e => {
-                          const newFeatures = [...data.features];
-                          newFeatures[index].title = e.target.value;
-                          updateData("features", newFeatures);
-                        }}
-                        placeholder="Feature Title"
-                        autoFocus
+                  {data.about?.image && (
+                    <div className="w-full h-32 relative mt-2">
+                      <img
+                        src={data.about.image}
+                        alt="About"
+                        className="w-full h-full object-cover rounded"
                       />
-                      <Textarea
-                        className="mb-2"
-                        value={feature.description}
-                        onChange={e => {
-                          const newFeatures = [...data.features];
-                          newFeatures[index].description = e.target.value;
-                          updateData("features", newFeatures);
-                        }}
-                        placeholder="Feature Description"
-                        rows={3}
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="secondary" onClick={() => setActiveCard(null)}>Done</Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newFeatures = [...data.features];
-                            newFeatures.splice(index, 1);
-                            updateData("features", newFeatures);
-                            setActiveCard(null);
-                          }}
-                        >
-                          <Icons.trash className="h-4 w-4 mr-1" />Remove
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-start mb-4">
-                        <div 
-                          className="rounded-full p-3 mr-4"
-                          style={{ backgroundColor: `${data.theme.secondaryColor}33` }}
-                        >
-                          <Icons.check className="h-6 w-6" style={{ color: data.theme.primaryColor }} />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold" style={{ color: data.theme.primaryColor }}>
-                            {feature.title}
-                          </h3>
-                          <p className="text-gray-600 ml-0 mt-2">
-                            {feature.description}
-                          </p>
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="ml-2 p-1 h-7 w-7"
-                          onClick={() => setActiveCard({ type: 'feature', index })}
-                        >
-                          <Icons.pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </>
+                    </div>
                   )}
                 </div>
-              );
-            })}
-            {showEdit && (
-              <div 
-                className="p-6 rounded-lg border border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => {
-                  const newFeatures = [...data.features, {
-                    title: "New Feature",
-                    description: "Description of the new feature"
-                  }];
-                  updateData("features", newFeatures);
-                  setActiveCard({ type: 'feature', index: newFeatures.length - 1 });
-                }}
-              >
-                <Icons.plus className="h-8 w-8 mb-2 text-gray-400" />
-                <span className="text-gray-500">Add New Feature</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-      
-      {/* Benefits Section */}
-      <section className="py-16 px-6 md:px-12"
-        style={{ backgroundColor: `${data.theme.primaryColor}0a` }}
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-              Benefits
-            </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              Why customers love our product
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {data.benefits.map((benefit, index) => {
-              const isEditingCard = activeCard?.type === 'benefit' && activeCard.index === index;
-              return (
-                <div key={index} className="bg-white p-6 rounded-lg shadow-sm relative">
-                  {isEditingCard ? (
-                    <>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label>Features</Label>
+                    <Button onClick={handleAddAboutFeature} variant="outline" size="sm">
+                      Add Feature
+                    </Button>
+                  </div>
+                  {(data.about?.features || []).map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2">
                       <Input
-                        className="mb-2"
-                        value={benefit.title}
+                        value={feature}
                         onChange={e => {
-                          const newBenefits = [...data.benefits];
-                          newBenefits[index].title = e.target.value;
-                          updateData("benefits", newBenefits);
+                          const features = [...(data.about?.features || [])];
+                          features[index] = e.target.value;
+                          updateData("about.features", features);
                         }}
-                        placeholder="Benefit Title"
-                        autoFocus
                       />
-                      <Textarea
-                        className="mb-2"
-                        value={benefit.description}
-                        onChange={e => {
-                          const newBenefits = [...data.benefits];
-                          newBenefits[index].description = e.target.value;
-                          updateData("benefits", newBenefits);
-                        }}
-                        placeholder="Benefit Description"
-                        rows={3}
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="secondary" onClick={() => setActiveCard(null)}>Done</Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newBenefits = [...data.benefits];
-                            newBenefits.splice(index, 1);
-                            updateData("benefits", newBenefits);
-                            setActiveCard(null);
-                          }}
-                        >
-                          <Icons.trash className="h-4 w-4 mr-1" />Remove
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-start">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold mb-3" style={{ color: data.theme.primaryColor }}>
-                            {benefit.title}
-                          </h3>
-                          <p className="text-gray-600">
-                            {benefit.description}
-                          </p>
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="ml-2 p-1 h-7 w-7"
-                          onClick={() => setActiveCard({ type: 'benefit', index })}
-                        >
-                          <Icons.pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {showEdit && (
-              <div 
-                className="p-6 rounded-lg border border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors bg-white"
-                onClick={() => {
-                  const newBenefits = [...data.benefits, {
-                    title: "New Benefit",
-                    description: "Description of the new benefit"
-                  }];
-                  updateData("benefits", newBenefits);
-                  setActiveCard({ type: 'benefit', index: newBenefits.length - 1 });
-                }}
-              >
-                <Icons.plus className="h-8 w-8 mb-2 text-gray-400" />
-                <span className="text-gray-500">Add New Benefit</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-      
-      {/* Media Gallery Section */}
-      <section className="py-12 px-6 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-            Media Gallery
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {galleryImages.map((img, idx) => {
-              const isEditingCard = activeCard?.type === 'media' && activeCard.index === idx;
-              return (
-                <div key={idx} className="relative border rounded-md p-2 flex flex-col items-center justify-center w-48 h-48 bg-gray-50">
-                  {typeof img === 'string' ? (
-                    <Image src={img} alt={`Gallery image ${idx + 1}`} width={180} height={180} className="object-cover rounded w-full h-full" />
-                  ) : (
-                    <span className="text-gray-400">Image Preview</span>
-                  )}
-                  {showEdit && (
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <label className="cursor-pointer">
-                        <Icons.upload className="h-4 w-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={e => {
-                            if (e.target.files && e.target.files[0] && onImageChange) {
-                              onImageChange(idx + 1, e.target.files[0]);
-                            }
-                          }}
-                        />
-                      </label>
                       <Button
-                        size="icon"
+                        onClick={() => handleRemoveAboutFeature(index)}
                         variant="ghost"
-                        onClick={() => onRemoveImage && onRemoveImage(idx + 1)}
-                        className="p-1 h-6 w-6"
+                        size="sm"
+                        className="text-destructive"
                       >
                         <Icons.trash className="h-4 w-4" />
                       </Button>
                     </div>
-                  )}
+                  ))}
                 </div>
-              );
-            })}
-            {showEdit && (
-              <div className="border border-dashed rounded-md p-4 flex flex-col items-center justify-center text-muted-foreground w-48 h-48 cursor-pointer" onClick={onAddImage}>
-                <Icons.plus className="h-8 w-8 mb-2" />
-                <span>Add Image</span>
               </div>
             )}
-          </div>
-        </div>
-      </section>
 
-      {/* Video Section */}
-      <section className="py-12 px-6 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-            Product Video
-          </h2>
-          {showEdit ? (
-            <div className="flex gap-2 items-center">
-              <Input
-                className="w-96"
-                value={videoUrl}
-                onChange={e => updateData("media.video", e.target.value)}
-                placeholder="Paste video URL (YouTube, Vimeo, etc.)"
-              />
-              {videoUrl && (
-                <Button size="icon" variant="ghost" onClick={() => updateData("media.video", "")}> <Icons.trash className="h-4 w-4" /> </Button>
-              )}
-            </div>
-          ) : videoUrl ? (
-            <div className="mt-4">
-              <iframe src={videoUrl} title="Product Video" className="w-full h-64 rounded" allowFullScreen />
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-12 px-6 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-            Testimonials
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {(data.testimonials || []).map((testimonial, idx) => {
-              const isEditingCard = activeCard?.type === 'testimonial' && activeCard.index === idx;
-              return (
-                <div key={idx} className="border rounded-lg p-6 bg-white relative">
-                  {isEditingCard ? (
-                    <>
-                      <Textarea
-                        className="mb-2"
-                        value={testimonial.quote}
-                        onChange={e => {
-                          const newTestimonials = [...data.testimonials];
-                          newTestimonials[idx].quote = e.target.value;
-                          updateData("testimonials", newTestimonials);
-                        }}
-                        placeholder="Testimonial Quote"
-                        rows={3}
-                      />
+            {activeSection === "whyChoose" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Why Choose Us</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.whyChoose.title}
+                    onChange={e => updateData("whyChoose.title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input
+                    value={data.whyChoose.subtitle}
+                    onChange={e => updateData("whyChoose.subtitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Benefits</Label>
+                    <Button onClick={handleAddBenefit} variant="outline" size="sm">
+                      Add Benefit
+                    </Button>
+                  </div>
+                  {data.whyChoose.benefits.map((benefit, index) => (
+                    <div key={index} className="flex items-center gap-2">
                       <Input
-                        className="mb-2"
+                        value={benefit}
+                        onChange={e => {
+                          const benefits = [...data.whyChoose.benefits];
+                          benefits[index] = e.target.value;
+                          updateData("whyChoose.benefits", benefits);
+                        }}
+                        placeholder="Benefit Text"
+                      />
+                      <Button
+                        onClick={() => handleRemoveBenefit(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                      >
+                        <Icons.trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSection === "features" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Features</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.features.title}
+                    onChange={e => updateData("features.title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input
+                    value={data.features.subtitle}
+                    onChange={e => updateData("features.subtitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Features</Label>
+                    <Button onClick={handleAddFeature} variant="outline" size="sm">
+                      Add Feature
+                    </Button>
+                  </div>
+                  {data.features.items.map((feature, index) => (
+                    <Card key={index} className="p-4 space-y-2">
+                      <div className="flex justify-between">
+                        <Label>Feature {index + 1}</Label>
+                        <Button
+                          onClick={() => handleRemoveFeature(index)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                        >
+                          <Icons.trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Icon</Label>
+                        <Select
+                          value={feature.icon || ""}
+                          onValueChange={value => {
+                            const items = [...data.features.items];
+                            items[index] = { ...feature, icon: value };
+                            updateData("features.items", items);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an icon" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {iconOptions.map(icon => (
+                              <SelectItem key={icon} value={icon}>
+                                <div className="flex items-center">
+                                  {Icons[icon as keyof typeof Icons] && 
+                                    React.createElement(Icons[icon as keyof typeof Icons], { className: "h-4 w-4 mr-2" })}
+                                  {icon}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Title</Label>
+                        <Input
+                          value={feature.title}
+                          onChange={e => {
+                            const items = [...data.features.items];
+                            items[index] = { ...feature, title: e.target.value };
+                            updateData("features.items", items);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea
+                          value={feature.description}
+                          onChange={e => {
+                            const items = [...data.features.items];
+                            items[index] = { ...feature, description: e.target.value };
+                            updateData("features.items", items);
+                          }}
+                        />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSection === "pricing" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Pricing Plans</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.pricing.title}
+                    onChange={e => updateData("pricing.title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input
+                    value={data.pricing.subtitle}
+                    onChange={e => updateData("pricing.subtitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Input
+                    value={data.pricing.currency}
+                    onChange={e => updateData("pricing.currency", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Plans</Label>
+                    <Button onClick={handleAddPlan} variant="outline" size="sm">
+                      Add Plan
+                    </Button>
+                  </div>
+                  {data.pricing.plans.map((plan, planIndex) => (
+                    <Card key={planIndex} className="p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <Label>Plan {planIndex + 1}</Label>
+                        <Button
+                          onClick={() => handleRemovePlan(planIndex)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                        >
+                          <Icons.trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          value={plan.name}
+                          onChange={e => {
+                            const plans = [...data.pricing.plans];
+                            plans[planIndex] = { ...plan, name: e.target.value };
+                            updateData("pricing.plans", plans);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Price</Label>
+                        <Input
+                          type="number"
+                          value={plan.price}
+                          onChange={e => {
+                            const plans = [...data.pricing.plans];
+                            plans[planIndex] = { ...plan, price: Number(e.target.value) };
+                            updateData("pricing.plans", plans);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Billing Period</Label>
+                        <Select
+                          value={plan.period}
+                          onValueChange={value => {
+                            const plans = [...data.pricing.plans];
+                            plans[planIndex] = { ...plan, period: value };
+                            updateData("pricing.plans", plans);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select billing period" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="month">Monthly</SelectItem>
+                            <SelectItem value="year">Yearly</SelectItem>
+                            <SelectItem value="lifetime">One-time</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Features</Label>
+                          <Button
+                            onClick={() => handleAddPlanFeature(planIndex)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Add Feature
+                          </Button>
+                        </div>
+                        {plan.features.map((feature, featureIndex) => (
+                          <div key={featureIndex} className="flex items-center gap-2">
+                            <Input
+                              value={feature}
+                              onChange={e => {
+                                const plans = [...data.pricing.plans];
+                                plans[planIndex].features[featureIndex] = e.target.value;
+                                updateData("pricing.plans", plans);
+                              }}
+                            />
+                            <Button
+                              onClick={() => handleRemovePlanFeature(planIndex, featureIndex)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                            >
+                              <Icons.trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSection === "faq" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">FAQ Section</h3>
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={data.faq.title}
+                    onChange={e => updateData("faq.title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input
+                    value={data.faq.subtitle}
+                    onChange={e => updateData("faq.subtitle", e.target.value)}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <Label>FAQ Items</Label>
+                  <Button onClick={handleAddFaq} variant="outline" size="sm">
+                    Add FAQ
+                  </Button>
+                </div>
+                {data.faq.items.map((item, index) => (
+                  <Card key={index} className="p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <Label>FAQ {index + 1}</Label>
+                      <Button
+                        onClick={() => handleRemoveFaq(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                      >
+                        <Icons.trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Question</Label>
+                      <Input
+                        value={item.question}
+                        onChange={e => {
+                          const items = [...data.faq.items];
+                          items[index] = { ...item, question: e.target.value };
+                          updateData("faq.items", items);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Answer</Label>
+                      <Textarea
+                        value={item.answer}
+                        onChange={e => {
+                          const items = [...data.faq.items];
+                          items[index] = { ...item, answer: e.target.value };
+                          updateData("faq.items", items);
+                        }}
+                      />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {activeSection === "testimonials" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Testimonials</h3>
+                <div className="flex justify-between items-center">
+                  <Label>Testimonials</Label>
+                  <Button onClick={handleAddTestimonial} variant="outline" size="sm">
+                    Add Testimonial
+                  </Button>
+                </div>
+                {data.testimonials.map((testimonial, index) => (
+                  <Card key={index} className="p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <Label>Testimonial {index + 1}</Label>
+                      <Button
+                        onClick={() => handleRemoveTestimonial(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                      >
+                        <Icons.trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input
                         value={testimonial.name}
                         onChange={e => {
-                          const newTestimonials = [...data.testimonials];
-                          newTestimonials[idx].name = e.target.value;
-                          updateData("testimonials", newTestimonials);
+                          const testimonials = [...data.testimonials];
+                          testimonials[index] = { ...testimonial, name: e.target.value };
+                          updateData("testimonials", testimonials);
                         }}
-                        placeholder="Author Name"
                       />
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="secondary" onClick={() => setActiveCard(null)}>Done</Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newTestimonials = [...data.testimonials];
-                            newTestimonials.splice(idx, 1);
-                            updateData("testimonials", newTestimonials);
-                            setActiveCard(null);
-                          }}
-                        >
-                          <Icons.trash className="h-4 w-4 mr-1" />Remove
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <blockquote className="italic text-gray-700 mb-2">"{testimonial.quote}"</blockquote>
-                      <div className="font-semibold text-[#A67B5B]">- {testimonial.name}</div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute top-2 right-2 p-1 h-7 w-7"
-                        onClick={() => setActiveCard({ type: 'testimonial', index: idx })}
-                      >
-                        <Icons.pencil className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {showEdit && (
-              <div className="border border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors bg-white" onClick={() => {
-                const newTestimonials = [...(data.testimonials || []), { quote: "New testimonial", name: "Author" }];
-                updateData("testimonials", newTestimonials);
-                setActiveCard({ type: 'testimonial', index: newTestimonials.length - 1 });
-              }}>
-                <Icons.plus className="h-8 w-8 mb-2 text-gray-400" />
-                <span className="text-gray-500">Add Testimonial</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-12 px-6 md:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4" style={{ color: data.theme.primaryColor }}>
-            Frequently Asked Questions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {(data.faq || []).map((faq, idx) => {
-              const isEditingCard = activeCard?.type === 'faq' && activeCard.index === idx;
-              return (
-                <div key={idx} className="border rounded-lg p-6 bg-white relative">
-                  {isEditingCard ? (
-                    <>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Role/Position</Label>
                       <Input
-                        className="mb-2"
-                        value={faq.question}
+                        value={testimonial.role}
                         onChange={e => {
-                          const newFaq = [...data.faq];
-                          newFaq[idx].question = e.target.value;
-                          updateData("faq", newFaq);
+                          const testimonials = [...data.testimonials];
+                          testimonials[index] = { ...testimonial, role: e.target.value };
+                          updateData("testimonials", testimonials);
                         }}
-                        placeholder="Question"
-                        autoFocus
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Content</Label>
                       <Textarea
-                        className="mb-2"
-                        value={faq.answer}
+                        value={testimonial.content}
                         onChange={e => {
-                          const newFaq = [...data.faq];
-                          newFaq[idx].answer = e.target.value;
-                          updateData("faq", newFaq);
+                          const testimonials = [...data.testimonials];
+                          testimonials[index] = { ...testimonial, content: e.target.value };
+                          updateData("testimonials", testimonials);
                         }}
-                        placeholder="Answer"
-                        rows={3}
                       />
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="secondary" onClick={() => setActiveCard(null)}>Done</Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newFaq = [...data.faq];
-                            newFaq.splice(idx, 1);
-                            updateData("faq", newFaq);
-                            setActiveCard(null);
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Avatar Image</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                if (e.target?.result) {
+                                  const testimonials = [...data.testimonials];
+                                  testimonials[index] = { 
+                                    ...testimonial, 
+                                    image: e.target.result as string 
+                                  };
+                                  updateData("testimonials", testimonials);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
                           }}
-                        >
-                          <Icons.trash className="h-4 w-4 mr-1" />Remove
-                        </Button>
+                        />
+                        {testimonial.image && (
+                          <div className="w-12 h-12 relative rounded-full overflow-hidden">
+                            <img
+                              src={testimonial.image}
+                              alt={testimonial.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-semibold mb-2">Q: {faq.question}</div>
-                      <div className="text-gray-700 mb-2">A: {faq.answer}</div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute top-2 right-2 p-1 h-7 w-7"
-                        onClick={() => setActiveCard({ type: 'faq', index: idx })}
-                      >
-                        <Icons.pencil className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {showEdit && (
-              <div className="border border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors bg-white" onClick={() => {
-                const newFaq = [...(data.faq || []), { question: "New question", answer: "Answer" }];
-                updateData("faq", newFaq);
-                setActiveCard({ type: 'faq', index: newFaq.length - 1 });
-              }}>
-                <Icons.plus className="h-8 w-8 mb-2 text-gray-400" />
-                <span className="text-gray-500">Add FAQ</span>
+                    </div>
+                  </Card>
+                ))}
               </div>
             )}
-          </div>
+          </Card>
         </div>
-      </section>
+      </div>
 
-      {/* CTA Section */}
-      <section className="py-16 px-6 md:px-12 text-center"
-        style={{ backgroundColor: data.theme.primaryColor }}
-      >
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6 text-white">
-            Ready to Get Started?
-          </h2>
-          <p className="text-white/80 mb-8 text-lg">
-            Take advantage of this amazing product today.
-          </p>
-          <Button 
-            className="px-8 py-3 rounded-full text-gray-800 font-semibold"
-            style={{ backgroundColor: data.theme.secondaryColor }}
-          >
-            {data.cta?.text || "Buy Now"}
-          </Button>
-        </div>
-      </section>
+      {/* Live Preview */}
+      <div className="lg:col-span-9">
+        <TemplateWrapper data={data} />
+      </div>
     </div>
   );
 } 

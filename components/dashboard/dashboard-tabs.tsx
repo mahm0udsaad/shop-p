@@ -7,7 +7,7 @@ import { OrdersTab } from "@/components/dashboard/orders-tab"
 
 type Product = {
   id: string
-  name: string
+  slug: string
   template: string
   created: string
   published: boolean
@@ -61,7 +61,7 @@ export function DashboardTabs({ products, analytics, selectedProductId }: Dashbo
         <ProductAnalyticsSelector
           products={products.map(p => ({ 
             id: p.id, 
-            name: p.name,
+            name: p.slug,
             hasAnalytics: Boolean(p.analyticsId)
           }))}
           selectedProductId={selectedProductId}

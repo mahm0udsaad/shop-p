@@ -19,7 +19,7 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
     .eq("id", productId)
     .eq("user_id", user.id)
     .single();
-    
+
   if (error || !product) {
     console.error("Error fetching product:", error);
     notFound();

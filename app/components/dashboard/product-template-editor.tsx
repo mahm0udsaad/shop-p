@@ -9,38 +9,38 @@ import { Label } from "@/components/ui/label";
 import { ColorPicker } from "./color-picker";
 import { ModernTemplate } from "./templates/modern-template-editor";
 import { Input } from "@/components/ui/input";
+import { updateProductTemplateData } from "@/app/dashboard/products/actions";
 
 // Types for template data
 interface TemplateData {
-  tagline: string;
-  description: string;
-  cta: {
-    text: string;
-    url: string;
+  hero: {
+    title: string;
+    tagline: string;
+    description: string;
+    cta: { text: string; url: string };
   };
-  features: Array<{
+  whyChoose: {
     title: string;
-    description: string;
-    icon?: string;
-  }>;
-  benefits: Array<{
-    title: string;
-    description: string;
-  }>;
+    subtitle: string;
+    benefits: Array<{ title: string; description: string }>;
+  };
+  features: Array<{ title: string; description: string; icon?: string }>;
   pricing: {
-    price: number;
     currency: string;
-    period?: string;
+    plans: Array<{
+      name: string;
+      price: number;
+      period: string;
+      features: string[];
+      isFeatured?: boolean;
+      discountNote?: string;
+    }>;
   };
-  media: {
-    images: string[];
-    video?: string;
-  };
-  theme: {
-    primaryColor: string;
-    secondaryColor: string;
-    fontFamily?: string;
-  };
+  faq: Array<{ question: string; answer: string }>;
+  testimonials: Array<{ quote: string; name: string; avatar?: string; title?: string; rating?: number }>;
+  media: { images: string[]; video?: string };
+  brand: { name: string; contactEmail: string; socialLinks: { twitter?: string; facebook?: string; linkedin?: string } };
+  theme: { primaryColor: string; secondaryColor: string; fontFamily?: string };
   footer?: string;
   customFields?: Record<string, any>;
 }
@@ -179,44 +179,17 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
 
   // Initialize template data with defaults for missing properties
   const defaultTemplateData: TemplateData = {
-    tagline: "Your product tagline",
-    description: "A detailed description of your amazing product",
-    cta: {
-      text: "Buy Now",
-      url: "#"
-    },
-    features: [
-      {
-        title: "Feature 1",
-        description: "Description of feature 1"
-      },
-      {
-        title: "Feature 2",
-        description: "Description of feature 2"
-      }
-    ],
-    benefits: [
-      {
-        title: "Benefit 1",
-        description: "Description of benefit 1"
-      },
-      {
-        title: "Benefit 2",
-        description: "Description of benefit 2"
-      }
-    ],
-    pricing: {
-      price: product.price || 99,
-      currency: "USD"
-    },
-    media: {
-      images: product.media?.images || []
-    },
-    theme: {
-      primaryColor: "#6F4E37",
-      secondaryColor: "#ECB176",
-    },
-    footer: "© 2023 Product Showcase. All rights reserved."
+    hero: { title: '', tagline: '', description: '', cta: { text: '', url: '' } },
+    whyChoose: { title: '', subtitle: '', benefits: [] },
+    features: [],
+    pricing: { currency: 'USD', plans: [] },
+    faq: [],
+    testimonials: [],
+    media: { images: [], video: '' },
+    brand: { name: '', contactEmail: '', socialLinks: {} },
+    theme: { primaryColor: '#6F4E37', secondaryColor: '#ECB176' },
+    footer: '',
+    customFields: {},
   };
 
   // Merge with existing template data
@@ -225,23 +198,17 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
     return {
       ...defaultTemplateData,
       ...product.template_data,
-      cta: {
-        ...defaultTemplateData.cta,
-        ...(product.template_data.cta || {})
-      },
-      theme: {
-        ...defaultTemplateData.theme,
-        ...(product.template_data.theme || {})
-      },
-      pricing: {
-        ...defaultTemplateData.pricing,
-        ...(product.template_data.pricing || {})
-      },
-      media: {
-        ...defaultTemplateData.media,
-        ...(product.template_data.media || {})
-      },
-      footer: product.template_data.footer || defaultTemplateData.footer
+      hero: { ...defaultTemplateData.hero, ...(product.template_data.hero || {}) },
+      whyChoose: { ...defaultTemplateData.whyChoose, ...(product.template_data.whyChoose || {}) },
+      pricing: { ...defaultTemplateData.pricing, ...(product.template_data.pricing || {}) },
+      media: { ...defaultTemplateData.media, ...(product.template_data.media || {}) },
+      brand: { ...defaultTemplateData.brand, ...(product.template_data.brand || {}) },
+      theme: { ...defaultTemplateData.theme, ...(product.template_data.theme || {}) },
+      features: product.template_data.features || [],
+      faq: product.template_data.faq || [],
+      testimonials: product.template_data.testimonials || [],
+      footer: product.template_data.footer || '',
+      customFields: product.template_data.customFields || {},
     };
   });
 
@@ -306,17 +273,9 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
     try {
       // TODO: Upload images if any are File objects, update templateData.media.images accordingly
       // For now, just save templateData
-      const response = await fetch(`/api/products/${product.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          template_data: templateData
-        }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to save template changes");
+      const result = await updateProductTemplateData(product.id, templateData);
+      if (result && result.error) {
+        throw new Error(result.error);
       }
       toast({
         title: "Changes saved",

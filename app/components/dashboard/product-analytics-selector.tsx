@@ -51,9 +51,6 @@ export function ProductAnalyticsSelector({
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  if (!hasProducts || !hasAnalyticsProducts) {
-    return null
-  }
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

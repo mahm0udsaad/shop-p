@@ -140,15 +140,7 @@ export function DashboardHeader({
           </DropdownMenu>
         </div>
       </div>
-      <div className="container py-4">
-        <div className="flex justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#6F4E37]">{heading}</h1>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
-          <div>{children}</div>
-        </div>
-      </div>
+     
     </header>
   )
 }

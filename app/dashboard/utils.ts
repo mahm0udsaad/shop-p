@@ -123,16 +123,11 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
       .from("products")
       .select(`
         id,
-        name,
-        description,
-        price,
         template,
+        slug,
         created_at,
-        media,
         template_data,
-        subdomain,
-        published,
-        featured
+        published
       `)
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -141,7 +136,7 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
 
     // Get analytics IDs for all subdomains in one query
     const subdomains = productsData
-      .map(p => p.subdomain)
+      .map(p => p.slug)
       .filter(Boolean) as string[]
 
     const { data: domainData, error: domainError } = await supabase
@@ -159,40 +154,29 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
 
     // Enhance products with analytics info and format data
     const enhancedProducts = await Promise.all(productsData.map(async (product: any) => {
-      const media = product.media || {}
-      const templateData = product.template_data || {}
-      
+      const templateData = product.template_data || {};
       // Get analytics_id from the map using product's subdomain
-      const analyticsId = product.subdomain ? analyticsMap.get(product.subdomain) : null
-      
+      const analyticsId = product.slug ? analyticsMap.get(product.slug) : null;
       // Fetch Umami analytics if we have an analytics_id
-      let analyticsData = null
+      let analyticsData = null;
       if (analyticsId && (!selectedProductId || selectedProductId === product.id)) {
-        analyticsData = await getUmamiAnalyticsForProduct(analyticsId)
+        analyticsData = await getUmamiAnalyticsForProduct(analyticsId);
       }
 
       return {
         id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
+        slug: product.slug || "",
         template: product.template || "modern",
-        subdomain: product.subdomain || "not-published",
         published: product.published || false,
-        featured: product.featured || false,
         orders: 0,
         views: analyticsData?.pageViews || 0,
         conversionRate: "0%",
         created: new Date(product.created_at).toISOString().split("T")[0],
-        image: media.images?.[0] || templateData.media?.images?.[0] || "/diverse-products-still-life.png",
-        tagline: templateData.tagline || "",
-        benefits: templateData.benefits || [],
-        features: templateData.features || [],
-        theme: templateData.theme || { primaryColor: "", secondaryColor: "" },
+        image: templateData.media?.images?.[0] || "/diverse-products-still-life.png",
         analyticsId: analyticsId,
         timeOnSite: analyticsData?.timeOnSite || 0,
         analyticsData: analyticsData
-      }
+      };
     }))
     
     // Fetch orders data
@@ -211,6 +195,7 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
     const conversionRate = totalViews > 0 ? Math.round((totalOrders / totalViews) * 100) : 0
     const avgTimeOnSite = enhancedProducts.reduce((sum, product) => sum + (product.timeOnSite || 0), 0) / enhancedProducts.length
 
+    
     // Format time on site
     const formatTimeOnSite = (seconds: number) => {
       const minutes = Math.floor(seconds / 60)
