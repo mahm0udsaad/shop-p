@@ -9,6 +9,18 @@ import { useAuth } from "@/contexts/auth-context"
 import { TemplateProvider } from "@/contexts/template-context"
 
 export const defaultTemplateData = {
+  navbar: {
+    title: "Your Brand",
+    logo: "",
+    links: [
+      { text: "Home", url: "#" },
+      { text: "Features", url: "#features" },
+      { text: "Pricing", url: "#pricing" },
+      { text: "Contact", url: "#", isButton: true }
+    ],
+    sticky: true,
+    transparent: false
+  },
   hero: {
     title: "Your Product Name",
     tagline: "A compelling tagline that captures attention",

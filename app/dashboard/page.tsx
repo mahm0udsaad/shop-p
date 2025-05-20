@@ -17,15 +17,16 @@ export default async function DashboardPage({
 
   const currSearchParams = await searchParams;
   const selectedProductId = typeof currSearchParams.productId === 'string' ? currSearchParams.productId : undefined
-  const { products, analytics } = await getDashboardData(user.id, selectedProductId)
+  
+  // Pass the promise instead of awaiting it
+  const dashboardDataPromise = getDashboardData(user.id, selectedProductId)
 
   return (
     <ClientDashboard
-      products={products}
-      analytics={analytics}
+      dashboardDataPromise={dashboardDataPromise}
       selectedProductId={selectedProductId}
-        heading="Dashboard"
-        description="Overview of your product showcase performance and management."
+      heading="Dashboard"
+      description="Overview of your product showcase performance and management."
     />
   )
 }

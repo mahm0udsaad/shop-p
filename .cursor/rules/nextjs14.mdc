@@ -3,41 +3,89 @@ description:
 globs: 
 alwaysApply: true
 ---
-Instructions for Generating React (Next.js) Code
+# Instructions for Generating React (Next.js) Code
+
 Please follow these architectural, performance, and developer experience guidelines when generating code for Next.js 15+.
 
-📦 Architectural Preferences
-Use React Server Components (RSC) by default.
+---
 
-Use Client Components only when interactivity is required (e.g., buttons, animations, forms).
+## 📦 Architectural Preferences
+- PNPM for pakcage management
+- Use **React Server Components (RSC)** by default.
 
-For forms:
+- Use **Client Components** only when interactivity is required (e.g., buttons, animations, forms).
 
-Prefer the useActionState hook for better progressive enhancement and server-side logic.
+- **For forms:**
+  - Prefer the `useActionState` hook for better progressive enhancement and server-side logic.
+  - Avoid `useState` and client-side form handlers unless strictly necessary.
 
-Avoid useState and client-side form handlers unless strictly necessary.
+- **Prefer Server Actions over API Routes:**
+  - In Next.js 15, Server Actions are first-class and should be used instead of traditional API routes for form submissions, mutations, and data handling.
+  - They simplify logic, improve performance, and reduce boilerplate.
 
-Prefer Server Actions over API Routes:
+- **In Server Components**, `params` and `searchParams` may now be Promises and should be awaited:
 
-In Next.js 15, Server Actions are first-class and should be used instead of traditional API routes for form submissions, mutations, and data handling.
+  ```tsx
+  export default async function Page({
+    params,
+    searchParams,
+  }: {
+    params: Promise<{ slug: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  }) {
+    const resolvedParams = await params;
+    const resolvedSearchParams = await searchParams;
+    // ...
+  }
+🔄 Data Fetching Strategy
+When implementing data fetching:
 
-They simplify logic, improve performance, and reduce boilerplate.
+Use React Server Components to fetch data by default.
 
-In Server Components, params and searchParams may now be Promises and should be awaited:
+Wrap all async Server Components in a <Suspense> boundary with an appropriate fallback UI (e.g., loading skeleton or spinner).
+
+If a Client Component must use server-fetched data:
+
+Pass the Promise from the Server Component to the Client Component.
+
+Use the use() hook inside the Client Component to resolve the data.
+
+Wrap the Client Component with <Suspense> and provide a fallback UI.
+
+Avoid useEffect for fetching data unless necessary.
+
+Ensure all passed data is serializable. Handle non-serializable logic server-side.
+
+Use <ErrorBoundary> components to catch and display error states when needed.
+
+Example:
 
 tsx
 Copy
 Edit
-export default async function Page({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}) {
-  const resolvedParams = await params
-  const resolvedSearchParams = await searchParams
-  // ...
+// app/page.tsx (Server Component)
+import { Suspense } from 'react';
+import Message from './Message';
+
+export default function Page() {
+  const messagePromise = fetchMessage(); // returns Promise<string>
+  return (
+    <Suspense fallback={<p>Loading message...</p>}>
+      <Message messagePromise={messagePromise} />
+    </Suspense>
+  );
+}
+tsx
+Copy
+Edit
+// app/Message.tsx (Client Component)
+'use client';
+
+import { use } from 'react';
+
+export default function Message({ messagePromise }: { messagePromise: Promise<string> }) {
+  const message = use(messagePromise);
+  return <p>{message}</p>;
 }
 ⚡ Performance Best Practices
 Optimize for static generation:
@@ -63,7 +111,7 @@ Use framer-motion for subtle and performant animations.
 
 Use lucide-react for icons.
 
-Add meaningful loading and error states using Suspense and error boundaries.
+Add meaningful loading and error states using <Suspense> and <ErrorBoundary>.
 
 🛠️ Developer Experience
 Use TypeScript and ensure all components and server actions are fully typed.
@@ -76,3 +124,4 @@ Keep Client Components lean—no heavy logic or data fetching in them.
 Sanitize all user input/output when displaying dynamic content.
 
 Use semantic HTML and ARIA attributes to ensure accessibility compliance.
+

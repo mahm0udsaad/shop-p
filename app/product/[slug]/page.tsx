@@ -147,47 +147,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
       // Create properly formatted landingPageData
       const landingPageData = {
-        product: {
-          id: product.id,
-          name: product.name,
-          tagline: product.tagline || "",
-          description: product.description || "",
-          features: Array.isArray(product.features) ? product.features : [],
-          benefits: product.benefits || "",
-          price: {
-            currency: product.currency || "USD",
-            monthly: null,
-            yearly: Number(product.price) || 0,
-            discountNote: ""
-          },
-          media: product.template_data?.media || {
-            images: images || [],
-            video: product.media?.video || ""
-          },
-          testimonials: product.template_data?.testimonials || [],
-          callToAction: product.template_data?.callToAction || { text: "", url: "" },
-          faq: product.template_data?.faq || []
-        },
-        brand: product.template_data?.brand || {
-          name: product.brand?.name || "",
-          logo: product.brand?.logo || "",
-          contactEmail: product.brand?.contactEmail || "",
-          socialLinks: product.brand?.socialLinks || {
-            twitter: "",
-            linkedin: "",
-            facebook: ""
-          }
-        },
-        seo: product.template_data?.seo || {
-          title: product.name,
-          description: product.description,
-          keywords: [],
-          image: images[0] || ""
-        },
-        theme: product.template_data?.theme || {
-          primaryColor: product.color || "#3A86FF",
-          secondaryColor: product.accent_color || "#FF006E"
-        }
+        ...product.template_data
       };
 
       // Render the appropriate template

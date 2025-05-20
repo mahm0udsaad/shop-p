@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,14 +22,17 @@ type Product = {
 }
 
 interface ProductsTabProps {
-  products: Product[]
+  products: Product[] | Promise<Product[]>
 }
 
 export function ProductsTab({ products }: ProductsTabProps) {
+  // If products is a promise, use the React use() hook to handle it
+  const resolvedProducts = products instanceof Promise ? use(products) : products;
+  
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((product, index) => (
+        {resolvedProducts.map((product, index) => (
           <Card key={product.id || index}>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">{product.slug}</CardTitle>
@@ -85,7 +89,7 @@ export function ProductsTab({ products }: ProductsTabProps) {
           </Card>
         ))}
       </div>
-      {products.length === 0 && (
+      {resolvedProducts.length === 0 && (
         <Card className="p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FED8B1]/30">
             <Icons.products className="h-6 w-6 text-[#6F4E37]" />

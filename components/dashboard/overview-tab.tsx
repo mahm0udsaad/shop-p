@@ -1,10 +1,16 @@
+"use client";
+
 import Link from "next/link"
+import { use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { OverviewChart } from "@/components/dashboard/overview-chart"
 import { RecentOrders } from "@/components/dashboard/recent-orders"
 import { VisitorMetrics } from "@/components/dashboard/visitor-metrics"
 import { Icons } from "@/app/components/dashboard/icons"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { TabErrorFallback } from "@/components/dashboard/tab-error-fallback"
+import { Globe, Laptop, Smartphone, Tablet } from "lucide-react"
 
 type AnalyticsData = {
   totalViews: number
@@ -21,115 +27,120 @@ type AnalyticsData = {
   ordersOverTime?: { date: string; orders: number }[]
 }
 
-export function OverviewTab({ analytics }: { analytics: AnalyticsData }) {
+interface OverviewTabProps {
+  analytics: AnalyticsData | Promise<AnalyticsData>
+}
+
+export function OverviewTab({ analytics }: OverviewTabProps) {
+  // If analytics is a promise, use the React use() hook to handle it
+  const resolvedAnalytics = analytics instanceof Promise ? use(analytics) : analytics;
+  
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <VisitorMetrics
-          title="Total Views"
-          value={analytics.totalViews}
-          description="All product pages"
-          icon={<Icons.views className="h-4 w-4 text-[#6F4E37]" />}
-        />
-        <VisitorMetrics
-          title="Total Orders"
-          value={analytics.totalOrders}
-          description="Across all products"
-          icon={<Icons.orders className="h-4 w-4 text-[#6F4E37]" />}
-        />
-        <VisitorMetrics
-          title="Conversion Rate"
-          value={analytics.conversionRate}
-          description="Orders per view"
-          icon={<Icons.conversion className="h-4 w-4 text-[#6F4E37]" />}
-        />
-        <VisitorMetrics
-          title="Avg. Time on Site"
-          value={analytics.averageTimeOnSite}
-          description="Per visitor"
-          icon={<Icons.timeOnSite className="h-4 w-4 text-[#6F4E37]" />}
-        />
-      </div>
+      <ErrorBoundary fallback={<TabErrorFallback tabName="metrics" />}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <VisitorMetrics
+            title="Total Views"
+            value={resolvedAnalytics.totalViews}
+            description="All product pages"
+            icon={<Icons.views className="h-4 w-4 text-[#6F4E37]" />}
+          />
+          <VisitorMetrics
+            title="Total Orders"
+            value={resolvedAnalytics.totalOrders}
+            description="Across all products"
+            icon={<Icons.orders className="h-4 w-4 text-[#6F4E37]" />}
+          />
+          <VisitorMetrics
+            title="Conversion Rate"
+            value={resolvedAnalytics.conversionRate}
+            description="Orders per view"
+            icon={<Icons.conversion className="h-4 w-4 text-[#6F4E37]" />}
+          />
+          <VisitorMetrics
+            title="Avg. Time on Site"
+            value={resolvedAnalytics.averageTimeOnSite}
+            description="Per visitor"
+            icon={<Icons.timeOnSite className="h-4 w-4 text-[#6F4E37]" />}
+          />
+        </div>
+      </ErrorBoundary>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Weekly Overview</CardTitle>
-            <CardDescription>Views and orders for the past 7 days</CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <OverviewChart data={{
-              viewsOverTime: analytics.viewsOverTime,
-              ordersOverTime: analytics.ordersOverTime
-            }} />
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest orders across all products</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentOrders orders={analytics.recentOrders} />
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full border-[#A67B5B]/30 text-[#6F4E37]" asChild>
-              <Link href="/dashboard/orders">View all orders</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <ErrorBoundary fallback={<TabErrorFallback tabName="overview chart" />}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Weekly Overview</CardTitle>
+              <CardDescription>Views and orders for the past 7 days</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <OverviewChart data={{
+                viewsOverTime: resolvedAnalytics.viewsOverTime,
+                ordersOverTime: resolvedAnalytics.ordersOverTime
+              }} />
+            </CardContent>
+          </Card>
+          <Card className="col-span-3">
+            <CardHeader>
+              <CardTitle>Recent Orders</CardTitle>
+              <CardDescription>Latest orders across all products</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentOrders orders={resolvedAnalytics.recentOrders} />
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full border-[#A67B5B]/30 text-[#6F4E37]" asChild>
+                <Link href="/dashboard/orders">View all orders</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </ErrorBoundary>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricsCard
-          title="Devices"
-          description="Visitor device types"
-          items={analytics.devices}
-          totalViews={analytics.totalViews}
-          iconMapper={(name) => {
-            if (name.toLowerCase().includes('desktop')) return <Icons.desktop className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('mobile')) return <Icons.mobile className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('tablet')) return <Icons.tablet className="h-4 w-4 text-[#6F4E37]" />
-            return null
-          }}
-        />
+      <ErrorBoundary fallback={<TabErrorFallback tabName="visitor details" />}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricsCard
+            title="Devices"
+            description="Visitor device types"
+            items={resolvedAnalytics.devices}
+            totalViews={resolvedAnalytics.totalViews}
+            iconMapper={(name) => {
+              if (name.toLowerCase().includes('desktop')) return <Laptop className="h-4 w-4 text-[#6F4E37]" />
+              if (name.toLowerCase().includes('mobile')) return <Smartphone className="h-4 w-4 text-[#6F4E37]" />
+              if (name.toLowerCase().includes('tablet')) return <Tablet className="h-4 w-4 text-[#6F4E37]" />
+              return <Laptop className="h-4 w-4 text-[#6F4E37]" />
+            }}
+          />
 
-        <MetricsCard
-          title="Browsers"
-          description="Most used browsers"
-          items={analytics.browsers}
-          totalViews={analytics.totalViews}
-          iconMapper={(name) => {
-            if (name.toLowerCase().includes('chrome')) return <Icons.chrome className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('firefox')) return <Icons.firefox className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('safari')) return <Icons.safari className="h-4 w-4 text-[#6F4E37]" />
-            return null
-          }}
-        />
+          <MetricsCard
+            title="Browsers"
+            description="Most used browsers"
+            items={resolvedAnalytics.browsers}
+            totalViews={resolvedAnalytics.totalViews}
+            iconMapper={() => <Globe className="h-4 w-4 text-[#6F4E37]" />}
+          />
 
-        <MetricsCard
-          title="Operating Systems"
-          description="Visitor OS distribution"
-          items={analytics.os}
-          totalViews={analytics.totalViews}
-          iconMapper={(name) => {
-            if (name.toLowerCase().includes('windows')) return <Icons.windows className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('mac')) return <Icons.mac className="h-4 w-4 text-[#6F4E37]" />
-            if (name.toLowerCase().includes('linux')) return <Icons.linux className="h-4 w-4 text-[#6F4E37]" />
-            return null
-          }}
-        />
+          <MetricsCard
+            title="Operating Systems"
+            description="Visitor OS distribution"
+            items={resolvedAnalytics.os}
+            totalViews={resolvedAnalytics.totalViews}
+            iconMapper={() => <Laptop className="h-4 w-4 text-[#6F4E37]" />}
+          />
 
-        <MetricsCard
-          title="Top Countries"
-          description="Visitor locations"
-          items={analytics.countries}
-          totalViews={analytics.totalViews}
-          iconMapper={() => <Icons.globe className="h-4 w-4 text-[#6F4E37]" />}
-        />
-      </div>
+          <MetricsCard
+            title="Top Countries"
+            description="Visitor locations"
+            items={resolvedAnalytics.countries}
+            totalViews={resolvedAnalytics.totalViews}
+            iconMapper={() => <Icons.globe className="h-4 w-4 text-[#6F4E37]" />}
+          />
+        </div>
+      </ErrorBoundary>
 
-      <TopReferrersCard referrers={analytics.topReferrers} />
+      <ErrorBoundary fallback={<TabErrorFallback tabName="referrers" />}>
+        <TopReferrersCard referrers={resolvedAnalytics.topReferrers} />
+      </ErrorBoundary>
     </div>
   )
 }
@@ -213,7 +224,7 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
                       />
                     </svg>
                   )}
-                  {referrer.referrer === "Direct" && <Icons.direct className="h-4 w-4 text-[#6F4E37]" />}
+                  {referrer.referrer === "Direct" && <Globe className="h-4 w-4 text-[#6F4E37]" />}
                   {referrer.referrer === "Instagram" && (
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path
@@ -249,10 +260,9 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
                           gradientUnits="userSpaceOnUse"
                           gradientTransform="translate(8 16) rotate(-65.1363) scale(9.22059)"
                         >
-                          <stop stopColor="#E0E8B7" />
-                          <stop offset="0.444662" stopColor="#FB8A2E" />
-                          <stop offset="0.71474" stopColor="#E2425C" />
-                          <stop offset="1" stopColor="#E2425C" stopOpacity="0" />
+                          <stop stopColor="#B13589" />
+                          <stop offset="0.79309" stopColor="#C62F94" />
+                          <stop offset="1" stopColor="#8A3AC8" />
                         </radialGradient>
                         <radialGradient
                           id="paint2_radial_87_7153"
@@ -260,21 +270,13 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
                           cy="0"
                           r="1"
                           gradientUnits="userSpaceOnUse"
-                          gradientTransform="translate(16.966 7.034) rotate(-90) scale(2.88)"
+                          gradientTransform="translate(17.4599 5.93899) rotate(-65.1363) scale(1.40225)"
                         >
-                          <stop offset="0.156701" stopColor="#406ADC" />
-                          <stop offset="0.467799" stopColor="#6A45BE" />
-                          <stop offset="1" stopColor="#6A45BE" stopOpacity="0" />
+                          <stop stopColor="#B13589" />
+                          <stop offset="0.79309" stopColor="#C62F94" />
+                          <stop offset="1" stopColor="#8A3AC8" />
                         </radialGradient>
                       </defs>
-                    </svg>
-                  )}
-                  {referrer.referrer === "Facebook" && (
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M24 12C24 5.37258 18.6274 0 12 0C5.37258 0 0 5.37258 0 12C0 17.9895 4.3882 22.954 10.125 23.8542V15.4688H7.07812V12H10.125V9.35625C10.125 6.34875 11.9166 4.6875 14.6576 4.6875C15.9701 4.6875 17.3438 4.92188 17.3438 4.92188V7.875H15.8306C14.34 7.875 13.875 8.80008 13.875 9.75V12H17.2031L16.6711 15.4688H13.875V23.8542C19.6118 22.954 24 17.9895 24 12Z"
-                        fill="#1877F2"
-                      />
                     </svg>
                   )}
                 </div>
@@ -283,7 +285,10 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
               <div className="flex items-center">
                 <span className="text-sm font-medium">{referrer.percentage}%</span>
                 <div className="ml-2 h-2 w-24 rounded-full bg-[#FED8B1]/30">
-                  <div className="h-2 rounded-full bg-[#ECB176]" style={{ width: `${referrer.percentage}%` }} />
+                  <div 
+                    className="h-2 rounded-full bg-[#ECB176]" 
+                    style={{ width: `${referrer.percentage}%` }} 
+                  />
                 </div>
               </div>
             </div>
@@ -292,4 +297,4 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
       </CardContent>
     </Card>
   )
-} 
+}

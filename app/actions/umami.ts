@@ -1,60 +1,94 @@
-const UMAMI_URL = process.env.UMAMI_URL || "https://analytics.shipfaster.tech";
-const USERNAME = process.env.UMAMI_USERNAME || 'admin';
-const PASSWORD = process.env.UMAMI_PASSWORD;
+const UMAMI_URL =  "https://analytics.shipfaster.tech";
+const UMAMI_USERNAME = process.env.UMAMI_USERNAME || 'admin';
+const UMAMI_PASSWORD = process.env.UMAMI_PASSWORD;
 
 // Store token in memory
 let sessionToken: string | null = null;
 let tokenExpiry: number | null = null;
 
-const UMAMI_API_URL = process.env.NEXT_PUBLIC_UMAMI_API_URL || 'https://analytics.umami.is'
-
-interface UmamiResponse {
-  pageviews: {
-    value: number
-  }
-  avgDuration: number
-}
-
-interface UmamiMetric {
-  x: string
-  y: number
-}
 
 /**
- * Login to Umami and get a session token
+ * Login to Umami API and get a session token
+ * With improved error handling and retry mechanism
  */
 async function login(): Promise<boolean> {
-  try {
-    const response = await fetch(`${UMAMI_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: USERNAME,
-        password: PASSWORD
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Login failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (data && data.token) {
-      sessionToken = data.token;
-      // Set token expiry to 23 hours from now (token typically lasts 24 hours)
-      tokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
-      return true;
-    }
-    
-    console.error("Login succeeded but no token received");
-    return false;
-  } catch (error) {
-    console.error("Login failed:", error instanceof Error ? error.message : String(error));
+  if (!UMAMI_USERNAME || !UMAMI_PASSWORD) {
+    console.error("Umami credentials not configured");
     return false;
   }
+
+  // Try up to 3 times with increasing delays
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      // Add delay for retries (but not on first attempt)
+      if (attempt > 0) {
+        const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`Retrying Umami login (attempt ${attempt + 1})...`);
+      }
+
+      // Create an AbortController to handle request timeouts
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      try {
+        const response = await fetch(`${UMAMI_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: UMAMI_USERNAME,
+            password: UMAMI_PASSWORD,
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const statusText = response.statusText || `Status code ${response.status}`;
+          throw new Error(`Login failed with status: ${statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data && data.token) {
+          sessionToken = data.token;
+          // Set token expiry to 23 hours from now (token typically lasts 24 hours)
+          tokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
+          return true;
+        }
+        
+        console.error("Login succeeded but no token received");
+        return false;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        // Special case for AbortError (timeout)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error("Login request timed out");
+          continue; // Try again if we have attempts left
+        }
+        
+        // For the last attempt, propagate the error
+        if (attempt === 2) {
+          throw error;
+        }
+        
+        // For earlier attempts, log and continue
+        console.error(`Login attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : String(error));
+      }
+    } catch (error) {
+      // On the last attempt, log and return failure
+      if (attempt === 2) {
+        console.error("All login attempts failed:", error instanceof Error ? error.message : String(error));
+        return false;
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -69,6 +103,7 @@ async function ensureValidSession(): Promise<boolean> {
 
 /**
  * Make an authenticated request to Umami API
+ * With improved error handling for network issues and detailed error information
  */
 async function makeUmamiRequest(
   method: 'get' | 'post' | 'put' | 'delete',
@@ -83,32 +118,68 @@ async function makeUmamiRequest(
   }
 
   const url = new URL(endpoint, UMAMI_URL);
-    Object.entries(params).forEach(([key, value]) => {
+  Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
+  });
+
+  // Use AbortController to handle timeouts
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+  try {
+    const response = await fetch(url.toString(), {
+      method,
+      headers: {
+        'Authorization': `Bearer ${sessionToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : null,
+      signal: controller.signal
     });
 
-  const response = await fetch(url.toString(), {
-    method,
-    headers: {
-      'Authorization': `Bearer ${sessionToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : null,
-  });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       // If unauthorized, try to login again
-    if (response.status === 401) {
-      sessionToken = null;
-      const retrySession = await ensureValidSession();
-      if (retrySession) {
-        return makeUmamiRequest(method, endpoint, body, params);
+      if (response.status === 401) {
+        sessionToken = null;
+        const retrySession = await ensureValidSession();
+        if (retrySession) {
+          return makeUmamiRequest(method, endpoint, body, params);
         }
       }
-    throw new Error(`Umami API error: ${response.statusText}`);
+      
+      // Get more details about the error if possible
+      let errorDetails = '';
+      try {
+        const errorJson = await response.json();
+        errorDetails = errorJson.error || errorJson.message || '';
+      } catch (_) {
+        // Could not parse error JSON, using status text instead
+      }
+      
+      throw new Error(`Umami API error (${response.status}): ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }
 
-  return response.json();
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle specific error types with more helpful messages
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Umami API request timeout: ${endpoint}`);
+      } else if (error instanceof TypeError && error.message.includes('fetch failed')) {
+        throw new Error(`Umami API connection error: Could not connect to ${UMAMI_URL}`);
+      }
+      
+      // Rethrow with original message
+      throw error;
+    }
+    
+    // If it's not an Error instance, convert it to one
+    throw new Error(`Unknown error in Umami API request: ${String(error)}`);
+  }
 }
 
 /**

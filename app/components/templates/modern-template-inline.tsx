@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { InlineEditor, EditableCard, InlineEditorGroup } from "@/app/components/inline-editor";
+import { createElement, useState } from "react";
+import { InlineEditor, EditableCard, EditableField, InlineEditorGroup } from "@/app/components/inline-editor";
 import { Icons } from "@/app/components/dashboard/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface TemplateData {
   hero: {
@@ -76,7 +83,8 @@ interface ModernTemplateInlineProps {
 
 export function ModernTemplateInline({ data, isEditing = false, onUpdate }: ModernTemplateInlineProps) {
   const [editingSections, setEditingSections] = useState<Record<string, boolean>>({});
-  const iconOptions = ["sparkles", "shield", "zap", "star", "heart", "rocket", "check", "box"];
+  const iconOptions = ["sparkles", "shield", "zap", "star", "heart", "rocket", "check", "box", 
+    "settings", "globe", "home", "mail", "thumbsUp", "users", "wand", "desktop", "sun", "moon"];
 
   // Helper to handle updates
   const handleUpdate = (path: string, value: any) => {
@@ -104,15 +112,131 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
     "--secondary-color": data.theme.secondaryColor,
   } as React.CSSProperties;
 
+  // Handle updates for testimonial fields
+  const handleTestimonialUpdate = (index: number, fields: EditableField[]) => {
+    const updatedTestimonial = { ...data.testimonials[index] };
+    
+    fields.forEach(field => {
+      if (field.id === 'name') updatedTestimonial.name = field.value;
+      if (field.id === 'role') updatedTestimonial.role = field.value;
+      if (field.id === 'content') updatedTestimonial.content = field.value;
+      if (field.id === 'image') updatedTestimonial.image = field.value;
+    });
+    
+    const testimonials = [...data.testimonials];
+    testimonials[index] = updatedTestimonial;
+    handleUpdate("testimonials", testimonials);
+  };
+
+  // Handle updates for feature fields
+  const handleFeatureUpdate = (index: number, fields: EditableField[]) => {
+    const updatedFeature = { ...data.features.items[index] };
+    
+    fields.forEach(field => {
+      if (field.id === 'title') updatedFeature.title = field.value;
+      if (field.id === 'description') updatedFeature.description = field.value;
+      if (field.id === 'icon') updatedFeature.icon = field.value;
+    });
+    
+    const items = [...data.features.items];
+    items[index] = updatedFeature;
+    handleUpdate("features.items", items);
+  };
+
+  // Handle updates for pricing plan fields
+  const handlePlanUpdate = (index: number, fields: EditableField[]) => {
+    const updatedPlan = { ...data.pricing.plans[index] };
+    
+    fields.forEach(field => {
+      if (field.id === 'name') updatedPlan.name = field.value;
+      if (field.id === 'price') updatedPlan.price = Number(field.value);
+      if (field.id === 'period') updatedPlan.period = field.value;
+      if (field.id === 'discountNote') updatedPlan.discountNote = field.value;
+      if (field.id === 'isFeatured') updatedPlan.isFeatured = field.value === 'true';
+    });
+    
+    const plans = [...data.pricing.plans];
+    plans[index] = updatedPlan;
+    handleUpdate("pricing.plans", plans);
+  };
+
+  // Handle updates for FAQ fields
+  const handleFaqUpdate = (index: number, fields: EditableField[]) => {
+    const updatedFaq = { ...data.faq.items[index] };
+    
+    fields.forEach(field => {
+      if (field.id === 'question') updatedFaq.question = field.value;
+      if (field.id === 'answer') updatedFaq.answer = field.value;
+    });
+    
+    const items = [...data.faq.items];
+    items[index] = updatedFaq;
+    handleUpdate("faq.items", items);
+  };
+
+  // Handle updates for benefit fields
+  const handleBenefitUpdate = (index: number, fields: EditableField[]) => {
+    const benefits = [...data.whyChoose.benefits];
+    benefits[index] = fields[0].value;
+    handleUpdate("whyChoose.benefits", benefits);
+  };
+
   return (
     <div className="min-h-screen bg-white" style={themeStyle}>
+      {/* Theme Settings */}
+      {isEditing && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="shadow-md">
+                <Icons.paintbrush className="h-4 w-4 mr-2" />
+                Theme
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium">Theme Settings</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="primary-color">Primary Color</Label>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full border"
+                      style={{ backgroundColor: data.theme.primaryColor }}
+                    />
+                    <Input
+                      id="primary-color"
+                      type="color"
+                      value={data.theme.primaryColor}
+                      onChange={(e) => handleUpdate("theme.primaryColor", e.target.value)}
+                      className="w-full h-8"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondary-color">Secondary Color</Label>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full border"
+                      style={{ backgroundColor: data.theme.secondaryColor }}
+                    />
+                    <Input
+                      id="secondary-color"
+                      type="color" 
+                      value={data.theme.secondaryColor}
+                      onChange={(e) => handleUpdate("theme.secondaryColor", e.target.value)}
+                      className="w-full h-8"
+                    />
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6"
-          isEditing={isSectionEditing("hero")}
-          onEditToggle={(state: boolean) => toggleEditingSection("hero", state)}
-        >
+        <div className="container mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <InlineEditor
@@ -166,35 +290,31 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               />
             </div>
           </div>
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* About Section (if exists) */}
       {data.about && (
         <section className="py-20 bg-white">
-          <InlineEditorGroup
-            className="container mx-auto px-4 md:px-6"
-            isEditing={isSectionEditing("about")}
-            onEditToggle={(state: boolean) => toggleEditingSection("about", state)}
-          >
+          <div className="container mx-auto px-4 md:px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div className="relative h-[350px] rounded-lg overflow-hidden shadow-xl order-2 md:order-1">
+              <div className="rounded-lg overflow-hidden shadow-lg">
                 <InlineEditor
                   type="image"
                   value={data.about.image || ""}
                   onChange={(value: string) => handleUpdate("about.image", value)}
                   imageSize="lg"
-                  className="w-full h-full"
+                  className="w-full h-full aspect-square"
                 />
               </div>
               
-              <div className="space-y-6 order-1 md:order-2">
+              <div className="space-y-6">
                 <InlineEditor
                   type="text"
                   value={data.about.title}
                   onChange={(value: string) => handleUpdate("about.title", value)}
                   placeholder="About Our Product"
-                  previewClassName="text-3xl font-bold tracking-tight text-gray-900"
+                  previewClassName="text-3xl font-bold tracking-tight text-gray-900 mb-4"
                 />
                 
                 <InlineEditor
@@ -205,54 +325,53 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
                   previewClassName="text-gray-600"
                 />
                 
-                <div className="space-y-3">
-                  {data.about.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-shrink-0 h-5 w-5 text-primary">
-                        <Icons.check className="h-5 w-5" />
+                <div className="space-y-2 mt-4">
+                  <h3 className="font-semibold text-lg mb-3">Key Features</h3>
+                  <div className="space-y-2">
+                    {data.about.features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="flex-shrink-0 h-5 w-5 text-primary">
+                          <Icons.check className="h-5 w-5" />
+                        </div>
+                        <InlineEditor
+                          type="text"
+                          value={feature}
+                          onChange={(value: string) => {
+                            const features = [...data.about!.features];
+                            features[index] = value;
+                            handleUpdate("about.features", features);
+                          }}
+                          placeholder={`Feature ${index + 1}`}
+                          previewClassName="text-gray-600"
+                        />
                       </div>
-                      <InlineEditor
-                        type="text"
-                        value={feature}
-                        onChange={(value: string) => {
-                          const features = [...data.about!.features];
-                          features[index] = value;
+                    ))}
+                    
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          const features = [...data.about!.features, "New Feature"];
                           handleUpdate("about.features", features);
                         }}
-                        placeholder={`Feature ${index + 1}`}
-                        previewClassName="text-gray-600"
-                      />
-                    </div>
-                  ))}
-                  
-                  {isSectionEditing("about") && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => {
-                        const features = [...data.about!.features, "New Feature"];
-                        handleUpdate("about.features", features);
-                      }}
-                    >
-                      <Icons.plus className="h-4 w-4 mr-1" /> Add Feature
-                    </Button>
-                  )}
+                      >
+                        <Icons.plus className="h-4 w-4 mr-1" /> Add Feature
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </InlineEditorGroup>
+          </div>
         </section>
       )}
 
       {/* Why Choose Us Section */}
       <section className="py-20 bg-gray-50">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6"
-          isEditing={isSectionEditing("whyChoose")}
-          onEditToggle={(state: boolean) => toggleEditingSection("whyChoose", state)}
-        >
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <InlineEditor
               type="text"
@@ -273,27 +392,28 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {data.whyChoose.benefits.map((benefit, index) => (
-              <EditableCard key={index} className="text-center h-full">
+              <EditableCard
+                key={index}
+                fields={[
+                  {
+                    id: "benefit",
+                    type: "text",
+                    label: "Benefit",
+                    value: benefit,
+                    placeholder: `Benefit ${index + 1}`
+                  }
+                ]}
+                onSave={(fields) => handleBenefitUpdate(index, fields)}
+                className="text-center h-full"
+              >
                 <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                   <Icons.check className="h-6 w-6 text-primary" />
                 </div>
-                
-                <InlineEditor
-                  type="text"
-                  value={benefit}
-                  onChange={(value: string) => {
-                    const benefits = [...data.whyChoose.benefits];
-                    benefits[index] = value;
-                    handleUpdate("whyChoose.benefits", benefits);
-                  }}
-                  placeholder={`Benefit ${index + 1}`}
-                  previewClassName="font-semibold text-gray-900 mb-2"
-                />
               </EditableCard>
             ))}
           </div>
           
-          {isSectionEditing("whyChoose") && (
+          {isEditing && (
             <div className="flex justify-center mt-8">
               <Button
                 type="button"
@@ -307,16 +427,12 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </Button>
             </div>
           )}
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* Features Section */}
       <section className="py-20 bg-white">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6"
-          isEditing={isSectionEditing("features")}
-          onEditToggle={(state: boolean) => toggleEditingSection("features", state)}
-        >
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <InlineEditor
               type="text"
@@ -337,66 +453,56 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {data.features.items.map((feature, index) => (
-              <EditableCard key={index} className="h-full">
-                <div className="mb-4">
-                  {feature.icon && Icons[feature.icon as keyof typeof Icons] ? (
-                    <div className="inline-flex h-10 w-10 rounded-md bg-primary/10 p-2">
-                      {React.createElement(Icons[feature.icon as keyof typeof Icons], {
-                        className: "h-6 w-6 text-primary",
-                      })}
-                    </div>
-                  ) : (
-                    <InlineEditor
-                      type="icon"
-                      value={feature.icon || ""}
-                      onChange={(value: string) => {
-                        const items = [...data.features.items];
-                        items[index] = { ...feature, icon: value };
-                        handleUpdate("features.items", items);
-                      }}
-                      iconOptions={iconOptions}
-                      className="inline-block"
-                    />
-                  )}
-                </div>
-                
-                <InlineEditor
-                  type="text"
-                  value={feature.title}
-                  onChange={(value: string) => {
-                    const items = [...data.features.items];
-                    items[index] = { ...feature, title: value };
-                    handleUpdate("features.items", items);
-                  }}
-                  placeholder={`Feature ${index + 1}`}
-                  previewClassName="font-semibold text-xl mb-2"
-                />
-                
-                <InlineEditor
-                  type="textarea"
-                  value={feature.description}
-                  onChange={(value: string) => {
-                    const items = [...data.features.items];
-                    items[index] = { ...feature, description: value };
-                    handleUpdate("features.items", items);
-                  }}
-                  placeholder="Describe this feature"
-                  previewClassName="text-gray-600"
-                />
+              <EditableCard
+                key={index}
+                fields={[
+                  {
+                    id: "icon",
+                    type: "icon",
+                    label: "Icon",
+                    value: feature.icon || "",
+                    options: iconOptions
+                  },
+                  {
+                    id: "title",
+                    type: "text",
+                    label: "Title",
+                    value: feature.title,
+                    placeholder: `Feature ${index + 1}`
+                  },
+                  {
+                    id: "description",
+                    type: "textarea",
+                    label: "Description",
+                    value: feature.description,
+                    placeholder: "Describe this feature"
+                  }
+                ]}
+                onSave={(fields) => handleFeatureUpdate(index, fields)}
+                className="h-full"
+              >
+                {feature.icon && Icons[feature.icon as keyof typeof Icons] && (
+                  <div className="mb-4 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    {createElement(Icons[feature.icon as keyof typeof Icons], {
+                      className: "h-5 w-5 text-primary",
+                    })}
+                  </div>
+                )}
               </EditableCard>
             ))}
           </div>
           
-          {isSectionEditing("features") && (
+          {isEditing && (
             <div className="flex justify-center mt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const items = [
-                    ...data.features.items,
-                    { title: "New Feature", description: "Describe this feature", icon: "sparkles" },
-                  ];
+                  const items = [...data.features.items, {
+                    title: "New Feature",
+                    description: "Description of this feature",
+                    icon: "sparkles"
+                  }];
                   handleUpdate("features.items", items);
                 }}
               >
@@ -404,16 +510,12 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </Button>
             </div>
           )}
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* Pricing Section */}
       <section className="py-20 bg-gray-50">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6"
-          isEditing={isSectionEditing("pricing")}
-          onEditToggle={(state: boolean) => toggleEditingSection("pricing", state)}
-        >
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <InlineEditor
               type="text"
@@ -427,107 +529,165 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               type="text"
               value={data.pricing.subtitle}
               onChange={(value: string) => handleUpdate("pricing.subtitle", value)}
-              placeholder="Choose the perfect plan for you"
+              placeholder="Choose the perfect plan for your needs"
               previewClassName="text-xl text-gray-600"
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {data.pricing.plans.map((plan, planIndex) => (
-              <EditableCard 
-                key={planIndex} 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {data.pricing.plans.map((plan, index) => (
+              <EditableCard
+                key={index}
+                fields={[
+                  {
+                    id: "name",
+                    type: "text",
+                    label: "Plan Name",
+                    value: plan.name,
+                    placeholder: "Plan Name"
+                  },
+                  {
+                    id: "price",
+                    type: "text",
+                    label: "Price",
+                    value: plan.price.toString(),
+                    placeholder: "29"
+                  },
+                  {
+                    id: "period",
+                    type: "text",
+                    label: "Period",
+                    value: plan.period,
+                    placeholder: "per month"
+                  },
+                  {
+                    id: "discountNote",
+                    type: "text",
+                    label: "Discount Note (optional)",
+                    value: plan.discountNote || "",
+                    placeholder: "Save 20% with annual billing"
+                  }
+                ]}
+                onSave={(fields) => handlePlanUpdate(index, fields)}
                 className={cn(
-                  "h-full border rounded-lg overflow-hidden",
-                  plan.isFeatured ? "border-primary shadow-lg" : "border-gray-200"
+                  "h-full transition-all",
+                  plan.isFeatured ? "border-primary shadow-lg scale-105 relative z-10 bg-white" : "bg-white"
                 )}
               >
-                <div className="p-6">
-                  <InlineEditor
-                    type="text"
-                    value={plan.name}
-                    onChange={(value: string) => {
-                      const plans = [...data.pricing.plans];
-                      plans[planIndex] = { ...plan, name: value };
-                      handleUpdate("pricing.plans", plans);
-                    }}
-                    placeholder="Plan Name"
-                    previewClassName="text-xl font-semibold mb-2"
-                  />
+                <div className="text-center mb-6">
+                  <div className="text-3xl font-bold mb-1">
+                    <span className="text-lg align-top">{data.pricing.currency}</span>
+                    {plan.price}
+                  </div>
+                  <div className="text-sm text-gray-500">{plan.period}</div>
+                  {plan.discountNote && (
+                    <div className="text-xs text-primary mt-1">{plan.discountNote}</div>
+                  )}
+                </div>
+                
+                {plan.isFeatured && (
+                  <div className="absolute top-0 right-0 bg-primary text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg font-medium">
+                    Popular
+                  </div>
+                )}
+                
+                <div className="space-y-2 mb-6">
+                  {plan.features.map((feature, featureIndex) => (
+                    <div key={featureIndex} className="flex items-center gap-2">
+                      <Icons.check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <InlineEditor
+                        type="text"
+                        value={feature}
+                        onChange={(value: string) => {
+                          const updatedPlan = { ...plan };
+                          updatedPlan.features = [...plan.features];
+                          updatedPlan.features[featureIndex] = value;
+                          
+                          const plans = [...data.pricing.plans];
+                          plans[index] = updatedPlan;
+                          handleUpdate("pricing.plans", plans);
+                        }}
+                        placeholder={`Feature ${featureIndex + 1}`}
+                        className="flex-1"
+                      />
+                    </div>
+                  ))}
                   
-                  <div className="flex items-baseline mb-4">
-                    <span className="text-gray-500 mr-1">{data.pricing.currency}</span>
-                    <InlineEditor
-                      type="text"
-                      value={String(plan.price)}
-                      onChange={(value: string) => {
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => {
+                        const updatedPlan = { ...plan };
+                        updatedPlan.features = [...plan.features, "New Feature"];
+                        
                         const plans = [...data.pricing.plans];
-                        plans[planIndex] = { ...plan, price: Number(value) };
+                        plans[index] = updatedPlan;
                         handleUpdate("pricing.plans", plans);
                       }}
-                      placeholder="0"
-                      previewClassName="text-4xl font-bold"
-                    />
-                    <span className="text-gray-500 ml-1">
-                      /{plan.period === "lifetime" ? "one-time" : plan.period}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3 mb-6">
-                    {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center">
-                        <Icons.check className="h-5 w-5 text-primary mr-2" />
-                        <InlineEditor
-                          type="text"
-                          value={feature}
-                          onChange={(value: string) => {
-                            const plans = [...data.pricing.plans];
-                            plans[planIndex].features[featureIndex] = value;
-                            handleUpdate("pricing.plans", plans);
-                          }}
-                          placeholder={`Feature ${featureIndex + 1}`}
-                          previewClassName="text-gray-600"
-                        />
-                      </div>
-                    ))}
+                    >
+                      <Icons.plus className="h-3 w-3 mr-1" /> Add Feature
+                    </Button>
+                  )}
+                </div>
+                
+                <Button className="w-full bg-primary text-white hover:bg-primary/90">
+                  Choose Plan
+                </Button>
+                
+                {isEditing && (
+                  <div className="mt-4 flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-600">Featured</label>
+                      <input
+                        type="checkbox"
+                        checked={plan.isFeatured}
+                        onChange={(e) => {
+                          const updatedPlan = { ...plan, isFeatured: e.target.checked };
+                          const plans = [...data.pricing.plans];
+                          plans[index] = updatedPlan;
+                          handleUpdate("pricing.plans", plans);
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                    </div>
                     
-                    {isSectionEditing("pricing") && (
+                    {data.pricing.plans.length > 1 && (
                       <Button
-                        type="button"
                         variant="ghost"
                         size="sm"
-                        className="mt-2 w-full"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         onClick={() => {
-                          const plans = [...data.pricing.plans];
-                          plans[planIndex].features.push("New Feature");
+                          const plans = data.pricing.plans.filter((_, i) => i !== index);
                           handleUpdate("pricing.plans", plans);
                         }}
                       >
-                        <Icons.plus className="h-4 w-4 mr-1" /> Add Feature
+                        <Icons.trash className="h-3 w-3 mr-1" /> Remove
                       </Button>
                     )}
                   </div>
-                  
-                  <Button variant="default" className="w-full">Get Started</Button>
-                </div>
+                )}
               </EditableCard>
             ))}
           </div>
           
-          {isSectionEditing("pricing") && (
+          {isEditing && (
             <div className="flex justify-center mt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const plans = [
-                    ...data.pricing.plans,
-                    {
-                      name: "New Plan",
-                      price: 0,
-                      period: "month",
-                      features: ["Feature 1"],
-                    },
-                  ];
+                  const newPlan = {
+                    name: "New Plan",
+                    price: 49,
+                    period: "per month",
+                    features: ["Feature 1", "Feature 2", "Feature 3"],
+                    isFeatured: false
+                  };
+                  
+                  const plans = [...data.pricing.plans, newPlan];
                   handleUpdate("pricing.plans", plans);
                 }}
               >
@@ -535,98 +695,77 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </Button>
             </div>
           )}
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* Testimonials Section */}
       <section className="py-20 bg-white">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6"
-          isEditing={isSectionEditing("testimonials")}
-          onEditToggle={(state: boolean) => toggleEditingSection("testimonials", state)}
-        >
+        <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">What Our Customers Say</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">
+              What Our Customers Say
+            </h2>
+            <p className="text-xl text-gray-600">
+              Don't just take our word for it. Here's what our users think.
+            </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {data.testimonials.map((testimonial, index) => (
-              <EditableCard key={index} className="h-full">
-                <div className="mb-4 text-gray-600">
-                  <Icons.quote className="h-8 w-8 text-primary/20 mb-2" />
-                  <InlineEditor
-                    type="textarea"
-                    value={testimonial.content}
-                    onChange={(value: string) => {
-                      const testimonials = [...data.testimonials];
-                      testimonials[index] = { ...testimonial, content: value };
-                      handleUpdate("testimonials", testimonials);
-                    }}
-                    placeholder="Customer testimonial"
-                    previewClassName="italic"
-                  />
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="mr-4">
-                    <InlineEditor
-                      type="image"
-                      value={testimonial.image || ""}
-                      onChange={(value: string) => {
-                        const testimonials = [...data.testimonials];
-                        testimonials[index] = { ...testimonial, image: value };
-                        handleUpdate("testimonials", testimonials);
-                      }}
-                      imageSize="sm"
-                      className="rounded-full overflow-hidden"
-                    />
-                  </div>
-                  
-                  <div>
-                    <InlineEditor
-                      type="text"
-                      value={testimonial.name}
-                      onChange={(value: string) => {
-                        const testimonials = [...data.testimonials];
-                        testimonials[index] = { ...testimonial, name: value };
-                        handleUpdate("testimonials", testimonials);
-                      }}
-                      placeholder="Customer Name"
-                      previewClassName="font-semibold"
-                    />
-                    
-                    <InlineEditor
-                      type="text"
-                      value={testimonial.role}
-                      onChange={(value: string) => {
-                        const testimonials = [...data.testimonials];
-                        testimonials[index] = { ...testimonial, role: value };
-                        handleUpdate("testimonials", testimonials);
-                      }}
-                      placeholder="Customer Role"
-                      previewClassName="text-gray-500 text-sm"
-                    />
-                  </div>
+              <EditableCard
+                key={index}
+                fields={[
+                  {
+                    id: "image",
+                    type: "image",
+                    label: "Profile Image",
+                    value: testimonial.image || "",
+                    imageSize: "sm"
+                  },
+                  {
+                    id: "name",
+                    type: "text",
+                    label: "Name",
+                    value: testimonial.name,
+                    placeholder: "John Doe"
+                  },
+                  {
+                    id: "role",
+                    type: "text",
+                    label: "Role",
+                    value: testimonial.role,
+                    placeholder: "CEO at Company"
+                  },
+                  {
+                    id: "content",
+                    type: "textarea",
+                    label: "Testimonial",
+                    value: testimonial.content,
+                    placeholder: "Share what this person had to say about your product"
+                  }
+                ]}
+                onSave={(fields) => handleTestimonialUpdate(index, fields)}
+                className="h-full bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="mb-6 flex justify-center">
+                  <Icons.quote className="h-8 w-8 text-primary/20" />
                 </div>
               </EditableCard>
             ))}
           </div>
           
-          {isSectionEditing("testimonials") && (
+          {isEditing && (
             <div className="flex justify-center mt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const testimonials = [
-                    ...data.testimonials,
-                    {
-                      name: "New Customer",
-                      role: "Position",
-                      content: "Add a testimonial",
-                      image: "",
-                    },
-                  ];
+                  const testimonials = [...data.testimonials, {
+                    name: "New Testimonial",
+                    role: "Role at Company",
+                    content: "Share what this person had to say about your product",
+                    image: ""
+                  }];
                   handleUpdate("testimonials", testimonials);
                 }}
               >
@@ -634,17 +773,13 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </Button>
             </div>
           )}
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* FAQ Section */}
       <section className="py-20 bg-gray-50">
-        <InlineEditorGroup
-          className="container mx-auto px-4 md:px-6 max-w-4xl"
-          isEditing={isSectionEditing("faq")}
-          onEditToggle={(state: boolean) => toggleEditingSection("faq", state)}
-        >
-          <div className="text-center mb-12">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12">
             <InlineEditor
               type="text"
               value={data.faq.title}
@@ -657,51 +792,47 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               type="text"
               value={data.faq.subtitle}
               onChange={(value: string) => handleUpdate("faq.subtitle", value)}
-              placeholder="Find answers to common questions"
+              placeholder="Find answers to common questions about our product"
               previewClassName="text-xl text-gray-600"
             />
           </div>
           
-          <div className="space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             {data.faq.items.map((item, index) => (
-              <EditableCard key={index}>
-                <InlineEditor
-                  type="text"
-                  value={item.question}
-                  onChange={(value: string) => {
-                    const items = [...data.faq.items];
-                    items[index] = { ...item, question: value };
-                    handleUpdate("faq.items", items);
-                  }}
-                  placeholder={`Question ${index + 1}`}
-                  previewClassName="text-lg font-semibold mb-2"
-                />
-                
-                <InlineEditor
-                  type="textarea"
-                  value={item.answer}
-                  onChange={(value: string) => {
-                    const items = [...data.faq.items];
-                    items[index] = { ...item, answer: value };
-                    handleUpdate("faq.items", items);
-                  }}
-                  placeholder="Answer this question"
-                  previewClassName="text-gray-600"
-                />
-              </EditableCard>
+              <EditableCard
+                key={index}
+                fields={[
+                  {
+                    id: "question",
+                    type: "text",
+                    label: "Question",
+                    value: item.question,
+                    placeholder: "What is your question?"
+                  },
+                  {
+                    id: "answer",
+                    type: "textarea",
+                    label: "Answer",
+                    value: item.answer,
+                    placeholder: "Provide the answer to the question"
+                  }
+                ]}
+                onSave={(fields) => handleFaqUpdate(index, fields)}
+                className="bg-white"
+              />
             ))}
           </div>
           
-          {isSectionEditing("faq") && (
+          {isEditing && (
             <div className="flex justify-center mt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const items = [
-                    ...data.faq.items,
-                    { question: "New Question", answer: "Answer this question" },
-                  ];
+                  const items = [...data.faq.items, {
+                    question: "New Question",
+                    answer: "Provide the answer to this question"
+                  }];
                   handleUpdate("faq.items", items);
                 }}
               >
@@ -709,7 +840,7 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </Button>
             </div>
           )}
-        </InlineEditorGroup>
+        </div>
       </section>
 
       {/* Footer */}
@@ -724,19 +855,21 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
                 placeholder="Your Brand"
                 previewClassName="text-xl font-bold"
               />
-              <p className="mt-2 text-gray-400">© {new Date().getFullYear()} All rights reserved.</p>
+              <div className="text-gray-400 mt-2">
+                © {new Date().getFullYear()} All rights reserved.
+              </div>
             </div>
             
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white">
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                 <Icons.twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white">
+              </Button>
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                 <Icons.facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white">
+              </Button>
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                 <Icons.instagram className="h-5 w-5" />
-              </a>
+              </Button>
             </div>
           </div>
         </div>

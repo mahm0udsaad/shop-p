@@ -1,6 +1,9 @@
 import {
   ArrowRight,
   ArrowUpRight,
+  BarChart3,
+  Box,
+  Calendar,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -12,6 +15,7 @@ import {
   Copy,
   CreditCard,
   Download,
+  Ellipsis,
   Eye,
   ExternalLink,
   EyeOff,
@@ -20,12 +24,14 @@ import {
   Filter,
   Folder,
   Github,
+  Globe,
   Globe2,
   Heart,
   HelpCircle,
   Home,
   Image,
   Instagram,
+  Laptop,
   Layout,
   Linkedin,
   Loader2,
@@ -67,16 +73,19 @@ import {
   Wand,
   X,
   Zap,
-  Ellipsis,
 } from "lucide-react"
 
 export const Icons = {
-  views: View,
+  views: Eye,
   orders: ShoppingBag,
   conversion: ArrowUpRight,
+  timeOnSite: Calendar,
+  chart: BarChart3,
+  products: Box,
+  plus: Plus,
+  add: Plus,
   arrow: ArrowRight,
   globe: Globe2,
-  // New additions
   spinner: Loader2,
   trash: Trash2,
   upload: Upload,
@@ -117,7 +126,6 @@ export const Icons = {
   moreHorizontal: MoreHorizontal,
   moreVertical: MoreVertical,
   paintbrush: Paintbrush,
-  plus: Plus,
   radio: Radio,
   rocket: Rocket,
   save: Save,
@@ -138,15 +146,13 @@ export const Icons = {
   x: X,
   zap: Zap,
   chevronDown: ChevronDown,
-  
-  // Social media
+  desktop: Laptop,
+  mobile: Smartphone,
   twitter: Twitter,
   facebook: Facebook,
   instagram: Instagram,
-  
-  // Content
   quote: Quote,
-  box: Layout, // Reuse layout as box
+  box: Box,
 };
 
 export type IconKey = keyof typeof Icons; 

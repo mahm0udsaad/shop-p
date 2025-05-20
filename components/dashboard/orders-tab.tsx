@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,10 +29,13 @@ interface Order {
 }
 
 interface OrdersTabProps {
-  orders: Order[]
+  orders: Order[] | Promise<Order[]>
 }
 
 export function OrdersTab({ orders }: OrdersTabProps) {
+  // If orders is a promise, use the React use() hook to handle it
+  const resolvedOrders = orders instanceof Promise ? use(orders) : orders;
+  
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   
@@ -76,7 +80,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
           <CardDescription>Manage your product orders and update their status</CardDescription>
         </CardHeader>
         <CardContent>
-          {orders.length > 0 ? (
+          {resolvedOrders.length > 0 ? (
             <div className="rounded-md border">
               <table className="w-full caption-bottom text-sm">
                 <thead>
@@ -91,7 +95,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {resolvedOrders.map((order) => (
                     <tr key={order.id} className="border-b">
                       <td className="p-4 align-middle font-medium">{order.order_number || order.id}</td>
                       <td className="p-4 align-middle">{order.date}</td>
@@ -131,7 +135,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
             </div>
           )}
         </CardContent>
-        {orders.length > 0 && (
+        {resolvedOrders.length > 0 && (
           <CardFooter>
             <Button 
               variant="outline" 

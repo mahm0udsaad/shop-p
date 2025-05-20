@@ -1,21 +1,31 @@
 "use client"
 
-import { Check, ChevronDown, ChevronUp, Quote, Star, Store } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import React from "react"
+import { Check, Store, Menu } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { createOrder } from "@/app/actions"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Icons } from "@/components/icons"
+import { Icons as BaseIcons } from "@/components/icons"
 import { Sparkles } from "lucide-react"
 
+// Extend the base Icons with the menu icon we need
+const Icons = {
+  ...BaseIcons,
+  menu: Menu
+}
+
 interface ModernTemplateProps {
-  data: {
+  landingPageData: {
+    navbar: {
+      logo?: string;
+      title: string;
+      links: Array<{
+        text: string;
+        url: string;
+        isButton?: boolean;
+      }>;
+      sticky?: boolean;
+      transparent?: boolean;
+    };
     hero: {
       title: string;
       tagline: string;
@@ -35,7 +45,7 @@ interface ModernTemplateProps {
     whyChoose: {
       title: string;
       subtitle: string;
-      benefits: string[];
+      benefits: Array<string | { text: string; icon?: string }>;
     };
     features: {
       title: string;
@@ -84,9 +94,22 @@ interface ModernTemplateProps {
   renderField?: (path: string, element: React.ReactNode) => React.ReactNode;
 }
 
-export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateProps) {
-  const primaryColor = data.theme?.primaryColor || "#6F4E37";
-  const secondaryColor = data.theme?.secondaryColor || "#ECB176";
+export function ModernTemplate({ landingPageData, isEditing, renderField }: ModernTemplateProps) {
+  const data = landingPageData
+  // Make sure theme object exists and provide fallbacks for all properties
+  const theme = data?.theme || {};
+  const primaryColor = theme.primaryColor || "#6F4E37";
+  const secondaryColor = theme.secondaryColor || "#ECB176";
+  // Ensure all required objects exist
+  const navbar = data?.navbar || { title: "Website", links: [] };
+  const hero = data?.hero || { title: "Title", tagline: "Tagline", description: "Description", cta: { text: "Get Started", url: "#" } };
+  const about = data?.about || { title: "About", description: "About us", features: [] };
+  const features = data?.features || { title: "Features", subtitle: "Our Features", items: [] };
+  const whyChoose = data?.whyChoose || { title: "Why Choose Us", subtitle: "Benefits", benefits: [] };
+  const pricing = data?.pricing || { title: "Pricing", subtitle: "Our Plans", currency: "$", plans: [] };
+  const faq = data?.faq || { title: "FAQ", subtitle: "Frequently Asked Questions", items: [] };
+  const testimonials = data?.testimonials || [];
+  const brand = data?.brand || { name: navbar.title };
 
   const wrapField = (path: string, element: React.ReactNode) => {
     if (isEditing && renderField) {
@@ -97,6 +120,54 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
 
   return (
     <div className="min-h-screen">
+      {/* Navbar */}
+      <header className={`w-full py-4 px-6 z-10 ${navbar.sticky ? 'sticky top-0' : ''} ${navbar.transparent ? 'bg-transparent' : 'bg-white shadow-sm'}`}>
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            {wrapField("navbar.logo",
+              navbar.logo ? (
+                <img 
+                  src={navbar.logo} 
+                  alt="Logo" 
+                  className="h-10 w-auto" 
+                />
+              ) : null
+            )}
+            {wrapField("navbar.title",
+              <span className="text-xl font-bold" style={{ color: primaryColor }}>
+                {navbar.title}
+              </span>
+            )}
+          </div>
+
+          <nav className="hidden md:flex items-center gap-4">
+            {navbar.links.map((link, index) => (
+              wrapField(`navbar.links.${index}`,
+                <div key={index}>
+                  {link.isButton ? (
+                    <Button style={{ backgroundColor: secondaryColor }} className="text-white">
+                      <a href={link.url}>{link.text}</a>
+                    </Button>
+                  ) : (
+                    <a 
+                      href={link.url} 
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      {link.text}
+                    </a>
+                  )}
+                </div>
+              )
+            ))}
+          </nav>
+
+          {/* Mobile menu button - only for display purposes */}
+          <Button variant="ghost" size="icon" className="md:hidden">
+            <Icons.menu className="h-6 w-6" />
+          </Button>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="relative py-20 px-4">
         <div className="max-w-7xl mx-auto">
@@ -104,16 +175,16 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
             <div className="space-y-6">
               {wrapField("hero.title",
               <h1 className="text-4xl md:text-5xl font-bold leading-tight" style={{ color: primaryColor }}>
-                  {data.hero.title}
+                  {hero.title}
               </h1>
               )}
               {wrapField("hero.tagline",
-                <p className="text-xl text-gray-600">{data.hero.tagline}</p>
+                <p className="text-xl text-gray-600">{hero.tagline}</p>
               )}
               <div className="flex flex-col sm:flex-row gap-4">
                 {wrapField("hero.cta",
                 <Button size="lg" style={{ backgroundColor: secondaryColor }} className="text-white">
-                    <a href={data.hero.cta.url}>{data.hero.cta.text}</a>
+                    <a href={hero.cta.url}>{hero.cta.text}</a>
                 </Button>
                 )}
                 <Button size="lg" variant="outline" className="border-gray-300">
@@ -123,9 +194,9 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
             </div>
             <div className="relative">
               {wrapField("hero.image",
-                data.hero.image ? (
+                hero.image ? (
                   <img
-                    src={data.hero.image}
+                    src={hero.image}
                     alt="Hero"
                     className="w-full h-auto rounded-lg shadow-xl"
                 />
@@ -145,27 +216,42 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
         <div className="max-w-7xl mx-auto text-center mb-12">
           {wrapField("whyChoose.title",
             <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>
-              {data.whyChoose.title}
+              {whyChoose.title}
             </h2>
           )}
           {wrapField("whyChoose.subtitle",
-            <p className="text-xl text-gray-600">{data.whyChoose.subtitle}</p>
+            <p className="text-xl text-gray-600">{whyChoose.subtitle}</p>
           )}
-          </div>
+        </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {data.whyChoose.benefits.map((benefit, index) => (
-            wrapField(`whyChoose.benefits.${index}`,
+          {whyChoose.benefits.map((benefit, index) => {
+            const benefitText = typeof benefit === 'string' ? benefit : benefit.text;
+            const benefitIcon = typeof benefit === 'string' ? null : benefit.icon;
+            
+            return wrapField(`whyChoose.benefits.${index}`,
               <div key={index} className="p-6 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <div
                   className="h-12 w-12 rounded-full mb-4 flex items-center justify-center"
                   style={{ backgroundColor: `${secondaryColor}20` }}
                 >
-                  <Check style={{ color: secondaryColor }} className="h-6 w-6" />
+                  {benefitIcon ? (
+                    <div className="h-6 w-6 flex items-center justify-center">
+                      {Icons[benefitIcon as keyof typeof Icons] ? 
+                        React.createElement(Icons[benefitIcon as keyof typeof Icons], { 
+                          style: { color: secondaryColor },
+                          className: "h-6 w-6" 
+                        }) :
+                        <Check style={{ color: secondaryColor }} className="h-6 w-6" />
+                      }
+                    </div>
+                  ) : (
+                    <Check style={{ color: secondaryColor }} className="h-6 w-6" />
+                  )}
                 </div>
-                <p className="text-gray-600">{benefit}</p>
+                <p className="text-gray-600">{benefitText}</p>
               </div>
-            )
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -174,15 +260,15 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
         <div className="max-w-7xl mx-auto text-center mb-12">
           {wrapField("features.title",
             <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>
-              {data.features.title}
+              {features.title}
             </h2>
           )}
           {wrapField("features.subtitle",
-            <p className="text-xl text-gray-600">{data.features.subtitle}</p>
+            <p className="text-xl text-gray-600">{features.subtitle}</p>
           )}
-                      </div>
+        </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {data.features.items.map((feature, index) => (
+          {features.items.map((feature, index) => (
             wrapField(`features.items.${index}`,
               <div key={index} className="p-6 border rounded-lg">
                 <div
@@ -199,8 +285,8 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
                 <p className="text-gray-600">{feature.description}</p>
               </div>
             )
-            ))}
-          </div>
+          ))}
+        </div>
       </section>
 
       {/* About/Product Detail Section */}
@@ -209,9 +295,9 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               {wrapField("about.image",
-                data.about?.image ? (
+                about.image ? (
                 <img
-                    src={data.about.image}
+                    src={about.image}
                     alt="About us"
                   className="w-full rounded-lg shadow-lg"
                 />
@@ -226,16 +312,16 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
             <div className="space-y-6">
               {wrapField("about.title",
               <h3 className="text-2xl font-bold" style={{ color: primaryColor }}>
-                  {data.about?.title || "Designed for Performance"}
+                  {about.title}
               </h3>
               )}
               
               {wrapField("about.description",
-                <p className="text-gray-600">{data.about?.description || "Experience crystal-clear audio with our premium wireless headphones. Designed for comfort and performance, these headphones deliver exceptional sound quality for up to 30 hours on a single charge."}</p>
+                <p className="text-gray-600">{about.description}</p>
               )}
 
               <ul className="space-y-3">
-                {(data.about?.features || []).map((feature, index) => (
+                {about.features.map((feature, index) => (
                   wrapField(`about.features.${index}`,
                   <li key={index} className="flex items-start gap-3">
                     <div className="mt-1">
@@ -256,20 +342,20 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
         <div className="max-w-7xl mx-auto text-center mb-12">
           {wrapField("pricing.title",
             <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>
-              {data.pricing.title}
+              {pricing.title}
             </h2>
           )}
           {wrapField("pricing.subtitle",
-            <p className="text-xl text-gray-600">{data.pricing.subtitle}</p>
+            <p className="text-xl text-gray-600">{pricing.subtitle}</p>
           )}
-          </div>
+        </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {data.pricing.plans.map((plan, index) => (
+          {pricing.plans.map((plan, index) => (
             wrapField(`pricing.plans.${index}`,
               <div key={index} className="p-8 border rounded-lg bg-white">
                 <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
                   <div className="mb-6">
-                  <span className="text-4xl font-bold">{data.pricing.currency}{plan.price}</span>
+                  <span className="text-4xl font-bold">{pricing.currency}{plan.price}</span>
                   <span className="text-gray-600">/{plan.period}</span>
                   </div>
                 <ul className="space-y-4 mb-8">
@@ -284,17 +370,17 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
                   </ul>
                 <Button className="w-full" style={{ backgroundColor: secondaryColor }}>
                   Choose {plan.name}
-                  </Button>
+                </Button>
               </div>
             )
-            ))}
+          ))}
         </div>
       </section>
 
       {/* Testimonials Section */}
       <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-          {data.testimonials.map((testimonial, index) => (
+          {testimonials.map((testimonial, index) => (
             wrapField(`testimonials.${index}`,
               <div key={index} className="p-6 border rounded-lg">
                 <div className="flex items-center mb-4">
@@ -315,7 +401,7 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
                 <p className="text-gray-600">{testimonial.content}</p>
               </div>
             )
-            ))}
+          ))}
         </div>
       </section>
 
@@ -325,15 +411,15 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
           <div className="text-center mb-12">
             {wrapField("faq.title",
               <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>
-                {data.faq.title}
+                {faq.title}
               </h2>
             )}
             {wrapField("faq.subtitle",
-              <p className="text-xl text-gray-600">{data.faq.subtitle}</p>
+              <p className="text-xl text-gray-600">{faq.subtitle}</p>
             )}
-            </div>
+          </div>
           <div className="grid md:grid-cols-2 gap-8">
-            {data.faq.items.map((item, index) => (
+            {faq.items.map((item, index) => (
               wrapField(`faq.items.${index}`,
                 <div key={index} className="p-6 border rounded-lg bg-white">
                   <h3 className="text-lg font-semibold mb-3">{item.question}</h3>
@@ -350,17 +436,17 @@ export function ModernTemplate({ data, isEditing, renderField }: ModernTemplateP
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           {wrapField("brand",
             <div className="flex items-center mb-4 md:mb-0">
-              {data.brand.logo ? (
+              {brand.logo ? (
                 <img
-                  src={data.brand.logo}
-                  alt={data.brand.name}
+                  src={brand.logo}
+                  alt={brand.name}
                   className="h-8 w-auto mr-2"
                 />
               ) : (
                 <Store className="h-8 w-8 mr-2" style={{ color: primaryColor }} />
               )}
               <span className="text-xl font-bold" style={{ color: primaryColor }}>
-                {data.brand.name}
+                {brand.name}
               </span>
             </div>
           )}

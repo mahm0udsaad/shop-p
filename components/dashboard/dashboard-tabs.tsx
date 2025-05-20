@@ -4,6 +4,10 @@ import { ProductAnalyticsSelector } from "@/app/components/dashboard/product-ana
 import { OverviewTab } from "@/components/dashboard/overview-tab"
 import { ProductsTab } from "@/components/dashboard/products-tab"
 import { OrdersTab } from "@/components/dashboard/orders-tab"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { TabErrorFallback } from "@/components/dashboard/tab-error-fallback"
+import { Suspense } from "react"
+import { TabContentSkeleton } from "@/components/dashboard/tab-content-skeleton"
 
 type Product = {
   id: string
@@ -46,7 +50,7 @@ export function DashboardTabs({ products, analytics, selectedProductId }: Dashbo
       <div className="flex justify-between">
         <TabsList className="bg-[#FED8B1]/30">
           <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
-            <Icons.overview className="mr-2 h-4 w-4" />
+            <Icons.chart className="mr-2 h-4 w-4" />
             Overview
           </TabsTrigger>
           <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
@@ -69,15 +73,33 @@ export function DashboardTabs({ products, analytics, selectedProductId }: Dashbo
       </div>
       
       <TabsContent value="overview" className="space-y-6">
-        <OverviewTab analytics={analytics} />
+        <ErrorBoundary 
+          fallback={<TabErrorFallback tabName="overview" />}
+        >
+          <Suspense fallback={<TabContentSkeleton type="overview" />}>
+            <OverviewTab analytics={analytics} />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
 
       <TabsContent value="products" className="space-y-6">
-        <ProductsTab products={products} />
+        <ErrorBoundary
+          fallback={<TabErrorFallback tabName="products" />}
+        >
+          <Suspense fallback={<TabContentSkeleton type="products" />}>
+            <ProductsTab products={products} />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
 
       <TabsContent value="orders" className="space-y-6">
-        <OrdersTab orders={analytics.recentOrders} />
+        <ErrorBoundary
+          fallback={<TabErrorFallback tabName="orders" />}
+        >
+          <Suspense fallback={<TabContentSkeleton type="orders" />}>
+            <OrdersTab orders={analytics.recentOrders} />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
     </Tabs>
   )

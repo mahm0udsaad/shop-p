@@ -51,14 +51,84 @@ interface UmamiAnalytics {
   timeOnSite?: number;
 }
 
+// Create cache for analytics data
+const analyticsCache = new Map<string, { data: UmamiAnalytics | null, timestamp: number }>();
+const CACHE_EXPIRY = 15 * 60 * 1000; // 15 minutes cache expiry
+
+/**
+ * Helper function to implement retry with exponential backoff
+ */
+async function withRetry<T>(operation: () => Promise<T>, retries = 3, initialDelay = 300): Promise<T> {
+  let lastError: any;
+  let delay = initialDelay;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt === retries) {
+        throw error;
+      }
+      
+      // Exponential backoff with jitter
+      const jitter = Math.random() * 0.3; // 0-30% jitter
+      await new Promise(resolve => setTimeout(resolve, delay * (1 + jitter)));
+      delay *= 2; // Exponential increase in delay
+    }
+  }
+  
+  // TypeScript needs this even though the loop above will either return or throw
+  throw lastError;
+}
+
+/**
+ * Get analytics data from Umami for a specific product
+ * With improved error handling, retries, and caching
+ */
 async function getUmamiAnalyticsForProduct(websiteId: string): Promise<UmamiAnalytics | null> {
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - 7)
+  // Check cache first
+  const cached = analyticsCache.get(websiteId);
+  if (cached && Date.now() - cached.timestamp < CACHE_EXPIRY) {
+    return cached.data;
+  }
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7);
+  
+  // Initialize with default data structure
+  const defaultAnalytics: UmamiAnalytics = {
+    websiteId,
+    pageViews: 0,
+    referrers: [],
+    devices: [],
+    browsers: [],
+    os: [],
+    countries: [],
+    dailyPageviews: generateEmptyDailyData(),
+    timeOnSite: 0
+  };
 
   try {
+    // Fetch basic analytics with retries
+    const analyticsData = await withRetry(
+      () => getWebsiteAnalytics(websiteId, startDate, endDate, 'day'),
+      2, // Max 2 retries
+      300 // 300ms initial delay
+    ).catch(error => {
+      console.error("Failed to fetch website analytics:", error);
+      return null;
+    });
+
+    if (!analyticsData) {
+      analyticsCache.set(websiteId, { data: defaultAnalytics, timestamp: Date.now() });
+      return defaultAnalytics;
+    }
+
+    // Fetch all metrics in parallel with independent retries
     const [
-      analyticsData, 
       referrerData,
       deviceData,
       browserData,
@@ -66,52 +136,81 @@ async function getUmamiAnalyticsForProduct(websiteId: string): Promise<UmamiAnal
       countryData,
       pageviewsData
     ] = await Promise.all([
-      getWebsiteAnalytics(websiteId, startDate, endDate, 'day'),
-      getWebsiteMetrics(websiteId, 'referrer', startDate, endDate, 10),
-      getWebsiteMetrics(websiteId, 'device', startDate, endDate, 5),
-      getWebsiteMetrics(websiteId, 'browser', startDate, endDate, 5),
-      getWebsiteMetrics(websiteId, 'os', startDate, endDate, 5),
-      getWebsiteMetrics(websiteId, 'country', startDate, endDate, 5),
-      getWebsiteMetrics(websiteId, 'url', startDate, endDate, 100)
-    ])
-
-    if (!analyticsData) return null
+      withRetry(() => getWebsiteMetrics(websiteId, 'referrer', startDate, endDate, 10), 2, 300)
+        .catch(error => { console.error("Failed to fetch referrer data:", error); return []; }),
+      withRetry(() => getWebsiteMetrics(websiteId, 'device', startDate, endDate, 5), 2, 300)
+        .catch(error => { console.error("Failed to fetch device data:", error); return []; }),
+      withRetry(() => getWebsiteMetrics(websiteId, 'browser', startDate, endDate, 5), 2, 300)
+        .catch(error => { console.error("Failed to fetch browser data:", error); return []; }),
+      withRetry(() => getWebsiteMetrics(websiteId, 'os', startDate, endDate, 5), 2, 300)
+        .catch(error => { console.error("Failed to fetch OS data:", error); return []; }),
+      withRetry(() => getWebsiteMetrics(websiteId, 'country', startDate, endDate, 5), 2, 300)
+        .catch(error => { console.error("Failed to fetch country data:", error); return []; }),
+      withRetry(() => getWebsiteMetrics(websiteId, 'url', startDate, endDate, 100), 2, 300)
+        .catch(error => { console.error("Failed to fetch URL metrics:", error); return []; })
+    ]);
 
     // Process daily pageviews for the chart
-    const dailyPageviews = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toLocaleDateString("en-US", { weekday: "short" })
-      return {
-        date: dateStr,
-        views: 0
-      }
-    }).reverse()
+    const dailyPageviews = generateEmptyDailyData();
 
     // Fill in actual pageview data
-    pageviewsData?.forEach((pv: any) => {
-      const date = new Date(pv.t).toLocaleDateString("en-US", { weekday: "short" })
-      const dayData = dailyPageviews.find(d => d.date === date)
-      if (dayData) {
-        dayData.views = pv.y
-      }
-    })
+    if (pageviewsData && Array.isArray(pageviewsData)) {
+      pageviewsData.forEach((pv: any) => {
+        const date = new Date(pv.t).toLocaleDateString("en-US", { weekday: "short" });
+        const dayData = dailyPageviews.find(d => d.date === date);
+        if (dayData) {
+          dayData.views = pv.y;
+        }
+      });
+    }
 
-    return {
+    const result: UmamiAnalytics = {
       websiteId,
-      pageViews: analyticsData.pageviews.value,
-      referrers: referrerData?.map((ref: any) => ({ x: ref.x, y: ref.y })) || [],
-      devices: deviceData?.map((dev: any) => ({ name: dev.x, value: dev.y })) || [],
-      browsers: browserData?.map((br: any) => ({ name: br.x, value: br.y })) || [],
-      os: osData?.map((os: any) => ({ name: os.x, value: os.y })) || [],
-      countries: countryData?.map((country: any) => ({ name: country.x, value: country.y })) || [],
+      pageViews: analyticsData.pageviews?.value || 0,
+      referrers: Array.isArray(referrerData) 
+        ? referrerData.map((ref: any) => ({ x: ref.x, y: ref.y })) 
+        : [],
+      devices: Array.isArray(deviceData) 
+        ? deviceData.map((dev: any) => ({ name: dev.x, value: dev.y })) 
+        : [],
+      browsers: Array.isArray(browserData) 
+        ? browserData.map((br: any) => ({ name: br.x, value: br.y })) 
+        : [],
+      os: Array.isArray(osData) 
+        ? osData.map((os: any) => ({ name: os.x, value: os.y })) 
+        : [],
+      countries: Array.isArray(countryData) 
+        ? countryData.map((country: any) => ({ name: country.x, value: country.y })) 
+        : [],
       dailyPageviews,
       timeOnSite: analyticsData.avgDuration || 0
-    }
+    };
+
+    // Cache the result
+    analyticsCache.set(websiteId, { data: result, timestamp: Date.now() });
+    return result;
   } catch (error) {
-    console.error("Error fetching Umami analytics:", error)
-    return null
+    console.error("Error fetching Umami analytics:", error);
+    
+    // Cache the error result (with defaults) to prevent repeated failing requests
+    analyticsCache.set(websiteId, { data: defaultAnalytics, timestamp: Date.now() });
+    return defaultAnalytics;
   }
+}
+
+/**
+ * Generate empty daily data for the past 7 days
+ */
+function generateEmptyDailyData() {
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toLocaleDateString("en-US", { weekday: "short" });
+    return {
+      date: dateStr,
+      views: 0
+    };
+  }).reverse();
 }
 
 export async function getDashboardData(userId: string, selectedProductId?: string) {
@@ -153,31 +252,61 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
     )
 
     // Enhance products with analytics info and format data
-    const enhancedProducts = await Promise.all(productsData.map(async (product: any) => {
-      const templateData = product.template_data || {};
-      // Get analytics_id from the map using product's subdomain
-      const analyticsId = product.slug ? analyticsMap.get(product.slug) : null;
-      // Fetch Umami analytics if we have an analytics_id
-      let analyticsData = null;
-      if (analyticsId && (!selectedProductId || selectedProductId === product.id)) {
-        analyticsData = await getUmamiAnalyticsForProduct(analyticsId);
-      }
+    // Use Promise.allSettled to handle individual product fetch failures gracefully
+    const enhancedProductsResults = await Promise.allSettled(productsData.map(async (product: any) => {
+      try {
+        const templateData = product.template_data || {};
+        // Get analytics_id from the map using product's subdomain
+        const analyticsId = product.slug ? analyticsMap.get(product.slug) : null;
+        // Fetch Umami analytics if we have an analytics_id
+        let analyticsData = null;
+        if (analyticsId && (!selectedProductId || selectedProductId === product.id)) {
+          try {
+            analyticsData = await getUmamiAnalyticsForProduct(analyticsId);
+          } catch (error) {
+            console.error(`Error fetching analytics for product ${product.id}:`, error);
+            // Continue with null analytics rather than failing the whole product
+          }
+        }
 
-      return {
-        id: product.id,
-        slug: product.slug || "",
-        template: product.template || "modern",
-        published: product.published || false,
-        orders: 0,
-        views: analyticsData?.pageViews || 0,
-        conversionRate: "0%",
-        created: new Date(product.created_at).toISOString().split("T")[0],
-        image: templateData.media?.images?.[0] || "/diverse-products-still-life.png",
-        analyticsId: analyticsId,
-        timeOnSite: analyticsData?.timeOnSite || 0,
-        analyticsData: analyticsData
-      };
-    }))
+        return {
+          id: product.id,
+          slug: product.slug || "",
+          template: product.template || "modern",
+          published: product.published || false,
+          orders: 0,
+          views: analyticsData?.pageViews || 0,
+          conversionRate: "0%",
+          created: new Date(product.created_at).toISOString().split("T")[0],
+          image: templateData.media?.images?.[0] || "/diverse-products-still-life.png",
+          analyticsId: analyticsId,
+          timeOnSite: analyticsData?.timeOnSite || 0,
+          analyticsData: analyticsData
+        };
+      } catch (error) {
+        console.error(`Error processing product ${product.id}:`, error);
+        // Return a basic product with minimal data to prevent dashboard failure
+        return {
+          id: product.id,
+          slug: product.slug || "",
+          template: product.template || "modern",
+          published: product.published || false,
+          orders: 0,
+          views: 0,
+          conversionRate: "0%",
+          created: new Date(product.created_at).toISOString().split("T")[0],
+          image: "/diverse-products-still-life.png",
+          analyticsId: null,
+          timeOnSite: 0,
+          analyticsData: null
+        };
+      }
+    }));
+
+    // Filter out failed product fetches and use only successful ones
+    const enhancedProducts = enhancedProductsResults
+      .filter(result => result.status === 'fulfilled')
+      .map(result => (result as PromiseFulfilledResult<any>).value);
     
     // Fetch orders data
     const { data: ordersData, error: ordersError } = await supabase
@@ -185,9 +314,21 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
       .select("*")
       .eq("user_id", userId)
       .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false });
 
-    if (ordersError) throw ordersError
+    if (ordersError) {
+      console.error("Error fetching orders:", ordersError);
+      // Continue with empty orders rather than failing the entire dashboard
+    }
+
+    // Safety check to ensure we have products
+    if (!enhancedProducts.length) {
+      console.warn("No products could be processed successfully");
+      return {
+        products: [],
+        analytics: getDefaultAnalyticsData()
+      };
+    }
 
     // Calculate total views and process analytics
     const totalViews = enhancedProducts.reduce((sum, product) => sum + product.views, 0)
@@ -203,12 +344,17 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
       return `${minutes}m ${remainingSeconds}s`
     }
 
-    // Process orders by day
-    const ordersByDay = ordersData?.reduce((acc: any, order: any) => {
-      const date = new Date(order.created_at).toLocaleDateString("en-US", { weekday: "short" })
-      acc[date] = (acc[date] || 0) + 1
+    // Process orders by day with safety checks
+    const ordersByDay = (ordersData || []).reduce((acc: any, order: any) => {
+      try {
+        const date = new Date(order.created_at).toLocaleDateString("en-US", { weekday: "short" })
+        acc[date] = (acc[date] || 0) + 1
+      } catch (error) {
+        console.error("Error processing order date:", error);
+        // Skip this order but continue processing others
+      }
       return acc
-    }, {}) || {}
+    }, {});
 
     // Create viewsOverTime and ordersOverTime arrays
     const timeData = Array.from({ length: 7 }, (_, i) => {
@@ -222,50 +368,101 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
       }
     }).reverse()
 
-    // Populate views data from Umami
+    // Populate views data from Umami with safety checks
     enhancedProducts.forEach(product => {
       if (product.analyticsData?.dailyPageviews) {
-        product.analyticsData.dailyPageviews.forEach((dayData: any) => {
-          const timeDataEntry = timeData.find(d => d.date === dayData.date)
-          if (timeDataEntry) {
-            timeDataEntry.views += dayData.views
-          }
-        })
+        try {
+          product.analyticsData.dailyPageviews.forEach((dayData: any) => {
+            const timeDataEntry = timeData.find(d => d.date === dayData.date)
+            if (timeDataEntry) {
+              timeDataEntry.views += dayData.views
+            }
+          })
+        } catch (error) {
+          console.error("Error processing pageviews data:", error);
+          // Continue with the data we have
+        }
       }
     })
 
-    // Format recent orders
-    const recentOrders = ordersData?.slice(0, 5).map((order: any) => ({
-      id: order.id,
-      order_number: order.order_number,
-      customer: order.customer_name || "Anonymous",
-      product: order.product_name || "Unknown Product",
-      amount: order.amount || 0,
-      status: order.status || "completed",
-      date: new Date(order.created_at).toLocaleDateString(),
-      created_at: order.created_at,
-      customer_email: order.customer_email,
-      customer_phone: order.customer_phone,
-      notes: order.notes,
-      shipping_address: order.shipping_address,
-      billing_address: order.billing_address,
-      currency: order.currency
-    })) || []
+    // Format recent orders with safety checks
+    const recentOrders = (ordersData || []).slice(0, 5).map((order: any) => {
+      try {
+        return {
+          id: order.id,
+          order_number: order.order_number,
+          customer: order.customer_name || "Anonymous",
+          product: order.product_name || "Unknown Product",
+          amount: order.amount || 0,
+          status: order.status || "completed",
+          date: new Date(order.created_at).toLocaleDateString(),
+          created_at: order.created_at,
+          customer_email: order.customer_email,
+          customer_phone: order.customer_phone,
+          notes: order.notes,
+          shipping_address: order.shipping_address,
+          billing_address: order.billing_address,
+          currency: order.currency
+        }
+      } catch (error) {
+        console.error("Error formatting order:", error);
+        // Return a basic order to prevent dashboard failure
+        return {
+          id: order.id || "unknown",
+          customer: "Anonymous",
+          product: "Unknown Product",
+          amount: 0,
+          status: "completed",
+          date: new Date().toLocaleDateString()
+        };
+      }
+    });
 
     // Update product orders if we have orders data
     if (enhancedProducts.length > 0 && ordersData) {
-      const ordersByProduct = ordersData.reduce((acc: any, order: any) => {
-        acc[order.product_id] = (acc[order.product_id] || 0) + 1
-        return acc
-      }, {})
+      try {
+        const ordersByProduct = ordersData.reduce((acc: any, order: any) => {
+          if (order.product_id) {
+            acc[order.product_id] = (acc[order.product_id] || 0) + 1;
+          }
+          return acc
+        }, {});
 
-      enhancedProducts.forEach(product => {
-        product.orders = ordersByProduct[product.id] || 0
-        product.conversionRate = product.views
-          ? `${Math.round((product.orders / product.views) * 100)}%`
-          : "0%"
-      })
+        enhancedProducts.forEach(product => {
+          product.orders = ordersByProduct[product.id] || 0;
+          product.conversionRate = product.views
+            ? `${Math.round((product.orders / product.views) * 100)}%`
+            : "0%";
+        });
+      } catch (error) {
+        console.error("Error updating product orders:", error);
+        // Continue with default conversion data
+      }
     }
+
+    // Process analytics data safely
+    const processMetrics = (products: any[], extractor: (product: any) => any[]) => {
+      return products.reduce((acc, product) => {
+        try {
+          const metrics = extractor(product);
+          if (Array.isArray(metrics)) {
+            metrics.forEach((metric: any) => {
+              if (!metric || !metric.name) return;
+              const existing = acc.find((d: { name: string; value: number }) => d.name === metric.name);
+              if (existing) {
+                existing.value += metric.value;
+              } else {
+                acc.push({ ...metric });
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error processing metrics:", error);
+          // Continue with the accumulated metrics
+        }
+        return acc;
+      }, [] as any[]);
+    };
 
     return {
       products: enhancedProducts,
@@ -274,62 +471,14 @@ export async function getDashboardData(userId: string, selectedProductId?: strin
         totalOrders,
         conversionRate: `${conversionRate}%`,
         averageTimeOnSite: formatTimeOnSite(avgTimeOnSite),
-        viewsOverTime: timeData.map(d => ({ date: d.date, views: d.views })),
-        ordersOverTime: timeData.map(d => ({ date: d.date, orders: d.orders })),
+        viewsOverTime: timeData.map((d: { date: string; views: number }) => ({ date: d.date, views: d.views })),
+        ordersOverTime: timeData.map((d: { date: string; orders: number }) => ({ date: d.date, orders: d.orders })),
         recentOrders,
         topReferrers: getDefaultReferrers(),
-        devices: enhancedProducts.reduce((acc, product) => {
-          if (product.analyticsData?.devices) {
-            product.analyticsData.devices.forEach((device: any) => {
-              const existing = acc.find(d => d.name === device.name)
-              if (existing) {
-                existing.value += device.value
-              } else {
-                acc.push({ ...device })
-              }
-            })
-          }
-          return acc
-        }, [] as any[]),
-        browsers: enhancedProducts.reduce((acc, product) => {
-          if (product.analyticsData?.browsers) {
-            product.analyticsData.browsers.forEach((browser: any) => {
-              const existing = acc.find(b => b.name === browser.name)
-              if (existing) {
-                existing.value += browser.value
-              } else {
-                acc.push({ ...browser })
-              }
-            })
-          }
-          return acc
-        }, [] as any[]),
-        os: enhancedProducts.reduce((acc, product) => {
-          if (product.analyticsData?.os) {
-            product.analyticsData.os.forEach((os: any) => {
-              const existing = acc.find(o => o.name === os.name)
-              if (existing) {
-                existing.value += os.value
-              } else {
-                acc.push({ ...os })
-              }
-            })
-          }
-          return acc
-        }, [] as any[]),
-        countries: enhancedProducts.reduce((acc, product) => {
-          if (product.analyticsData?.countries) {
-            product.analyticsData.countries.forEach((country: any) => {
-              const existing = acc.find(c => c.name === country.name)
-              if (existing) {
-                existing.value += country.value
-              } else {
-                acc.push({ ...country })
-              }
-            })
-          }
-          return acc
-        }, [] as any[])
+        devices: processMetrics(enhancedProducts, p => p.analyticsData?.devices || []),
+        browsers: processMetrics(enhancedProducts, p => p.analyticsData?.browsers || []),
+        os: processMetrics(enhancedProducts, p => p.analyticsData?.os || []),
+        countries: processMetrics(enhancedProducts, p => p.analyticsData?.countries || [])
       }
     }
   } catch (error) {
