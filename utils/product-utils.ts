@@ -129,12 +129,11 @@ export function convertLegacyProductData(legacyProduct: any): Product {
 
     // Handle specifications if present
     specifications: legacyProduct.specifications || legacyProduct.specs || undefined,
-
     // Handle variants if present
-    variants: legacyProduct.variants || undefined,
+    ...(legacyProduct.variants && { variants: legacyProduct.variants }),
 
-    // Handle colors if present
-    colors: legacyProduct.colors || undefined,
+    // Handle colors if present 
+    ...(legacyProduct.colors && { colors: legacyProduct.colors }),
 
     // Handle sizes if present
     sizes: legacyProduct.sizes || undefined,

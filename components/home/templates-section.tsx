@@ -4,8 +4,11 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function TemplatesSection() {
+  const { t } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -32,13 +35,13 @@ export function TemplatesSection() {
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2 animate-on-scroll">
             <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">
-              Premium Templates
+              {t('templates.badge')}
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-[#6F4E37]">
-              Professional Single Product Templates
+              {t('templates.title')}
             </h2>
             <p className="max-w-[900px] text-[#A67B5B] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Choose from our collection of professionally designed templates inspired by leading e-commerce platforms
+              {t('templates.subtitle')}
             </p>
           </div>
         </div>
@@ -65,8 +68,8 @@ export function TemplatesSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Modern Template</h3>
-                  <p className="text-white/80 text-sm">Clean, minimalist design with focus on product details</p>
+                  <h3 className="text-xl font-bold">{t('templates.modern.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('templates.modern.description')}</p>
                 </div>
               </div>
             </div>
@@ -74,7 +77,7 @@ export function TemplatesSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/modern">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('templates.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=modern">
@@ -82,7 +85,7 @@ export function TemplatesSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('templates.use_template')}
                   </Button>
                 </Link>
               </div>
@@ -104,8 +107,8 @@ export function TemplatesSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Gallery Template</h3>
-                  <p className="text-white/80 text-sm">Visual-focused design with large images and minimal text</p>
+                  <h3 className="text-xl font-bold">{t('templates.gallery.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('templates.gallery.description')}</p>
                 </div>
               </div>
             </div>
@@ -113,7 +116,7 @@ export function TemplatesSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/gallery">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('templates.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=gallery">
@@ -121,7 +124,7 @@ export function TemplatesSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('templates.use_template')}
                   </Button>
                 </Link>
               </div>
@@ -143,8 +146,8 @@ export function TemplatesSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Minimal Template</h3>
-                  <p className="text-white/80 text-sm">Clean, text-focused template with a simple layout</p>
+                  <h3 className="text-xl font-bold">{t('templates.minimal.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('templates.minimal.description')}</p>
                 </div>
               </div>
             </div>
@@ -152,7 +155,7 @@ export function TemplatesSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/minimal">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('templates.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=minimal">
@@ -160,7 +163,7 @@ export function TemplatesSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('templates.use_template')}
                   </Button>
                 </Link>
               </div>

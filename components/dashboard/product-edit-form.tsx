@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { ImageUploader } from "@/app/dashboard/new/components/image-uploader"
-import { updateProduct } from "@/app/dashboard/products/actions"
+import { ImageUploader } from "@/app/[lng]/dashboard/new/components/image-uploader"
+import { updateProduct } from "@/app/[lng]/dashboard/products/actions"
 import type { Database } from "@/lib/database.types"
 
 type Product = Database["public"]["Tables"]["products"]["Row"]

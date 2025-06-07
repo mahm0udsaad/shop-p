@@ -2,8 +2,11 @@
 
 import Image from "next/image"
 import { motion } from "framer-motion"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function ShowcaseExamplesSection() {
+  const { t } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -36,13 +39,13 @@ export function ShowcaseExamplesSection() {
             viewport={{ once: true }}
           >
             <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">
-              Showcase Examples
+              {t('showcase_examples.badge')}
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-[#6F4E37]">
-              Explore Stunning Product Showcases
+              {t('showcase_examples.title')}
             </h2>
             <p className="max-w-[900px] text-[#A67B5B] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Get inspired by these beautiful product showcases created by our users.
+              {t('showcase_examples.subtitle')}
             </p>
           </motion.div>
         </div>
@@ -61,7 +64,7 @@ export function ShowcaseExamplesSection() {
             >
               <Image
                 src="https://images.unsplash.com/photo-1441986300917-64674bd600d8"
-                alt="E-commerce store"
+                alt={t('showcase_examples.alt_texts.ecommerce_store')}
                 width={600}
                 height={400}
                 className="h-full w-full object-cover transition-transform hover:scale-105"
@@ -74,7 +77,7 @@ export function ShowcaseExamplesSection() {
             >
               <Image
                 src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d"
-                alt="Product showcase"
+                alt={t('showcase_examples.alt_texts.product_showcase')}
                 width={600}
                 height={400}
                 className="h-full w-full object-cover transition-transform hover:scale-105"
@@ -87,7 +90,7 @@ export function ShowcaseExamplesSection() {
             >
               <Image
                 src="https://images.unsplash.com/photo-1607082349566-187342175e2f"
-                alt="Online store"
+                alt={t('showcase_examples.alt_texts.online_store')}
                 width={600}
                 height={400}
                 className="h-full w-full object-cover transition-transform hover:scale-105"

@@ -3,8 +3,11 @@
 import { motion } from "framer-motion"
 import { Check } from "lucide-react"
 import Image from "next/image"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function FeaturesSection() {
+  const { t } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -30,12 +33,12 @@ export function FeaturesSection() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2 animate-on-scroll">
-            <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">Key Features</div>
+            <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">{t('features.badge')}</div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-[#6F4E37]">
-              Everything you need to succeed
+              {t('features.title')}
             </h2>
             <p className="max-w-[900px] text-[#A67B5B] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Our platform provides all the tools you need to showcase your products professionally
+              {t('features.subtitle')}
             </p>
           </div>
         </div>
@@ -68,8 +71,8 @@ export function FeaturesSection() {
                     <Check className="h-4 w-4 text-[#6F4E37]" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-[#6F4E37]">Live Template Preview</h3>
-                    <p className="text-[#A67B5B]">See exactly how your product page will look as you customize it</p>
+                    <h3 className="text-xl font-bold text-[#6F4E37]">{t('features.live_preview.title')}</h3>
+                    <p className="text-[#A67B5B]">{t('features.live_preview.description')}</p>
                   </div>
                 </div>
               </motion.li>
@@ -79,8 +82,8 @@ export function FeaturesSection() {
                     <Check className="h-4 w-4 text-[#6F4E37]" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-[#6F4E37]">Mobile Optimization</h3>
-                    <p className="text-[#A67B5B]">All templates are fully responsive and look great on any device</p>
+                    <h3 className="text-xl font-bold text-[#6F4E37]">{t('features.mobile_optimization.title')}</h3>
+                    <p className="text-[#A67B5B]">{t('features.mobile_optimization.description')}</p>
                   </div>
                 </div>
               </motion.li>
@@ -90,9 +93,9 @@ export function FeaturesSection() {
                     <Check className="h-4 w-4 text-[#6F4E37]" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-[#6F4E37]">SEO Optimization</h3>
+                    <h3 className="text-xl font-bold text-[#6F4E37]">{t('features.seo_optimization.title')}</h3>
                     <p className="text-[#A67B5B]">
-                      Built-in SEO tools to help your products rank higher in search results
+                      {t('features.seo_optimization.description')}
                     </p>
                   </div>
                 </div>
@@ -103,8 +106,8 @@ export function FeaturesSection() {
                     <Check className="h-4 w-4 text-[#6F4E37]" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-[#6F4E37]">Analytics Dashboard</h3>
-                    <p className="text-[#A67B5B]">Track views, engagement, and orders for all your product pages</p>
+                    <h3 className="text-xl font-bold text-[#6F4E37]">{t('features.analytics_dashboard.title')}</h3>
+                    <p className="text-[#A67B5B]">{t('features.analytics_dashboard.description')}</p>
                   </div>
                 </div>
               </motion.li>

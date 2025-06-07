@@ -5,8 +5,11 @@ import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function MultiProductSection() {
+  const { t } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -32,12 +35,12 @@ export function MultiProductSection() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2 animate-on-scroll">
-            <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">NEW FEATURE</div>
+            <div className="inline-block rounded-lg bg-[#ECB176]/20 px-3 py-1 text-sm text-[#6F4E37]">{t('multi_product.badge')}</div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-[#6F4E37]">
-              Multi-Product Store Templates
+              {t('multi_product.title')}
             </h2>
             <p className="max-w-[900px] text-[#A67B5B] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Showcase your entire product catalog with our powerful multi-product templates
+              {t('multi_product.subtitle')}
             </p>
           </div>
         </div>
@@ -64,8 +67,8 @@ export function MultiProductSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Multi-Product Template</h3>
-                  <p className="text-white/80 text-sm">Complete store solution with product filtering and search</p>
+                  <h3 className="text-xl font-bold">{t('multi_product.multi_product_template.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('multi_product.multi_product_template.description')}</p>
                 </div>
               </div>
             </div>
@@ -73,7 +76,7 @@ export function MultiProductSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/multi-product">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('multi_product.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=multi-product">
@@ -81,7 +84,7 @@ export function MultiProductSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('multi_product.use_template')}
                   </Button>
                 </Link>
               </div>
@@ -103,8 +106,8 @@ export function MultiProductSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Multi-Product Grid</h3>
-                  <p className="text-white/80 text-sm">Modern dark theme with grid layout for multiple products</p>
+                  <h3 className="text-xl font-bold">{t('multi_product.multi_product_grid.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('multi_product.multi_product_grid.description')}</p>
                 </div>
               </div>
             </div>
@@ -112,7 +115,7 @@ export function MultiProductSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/multi-product-grid">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('multi_product.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=multi-product-grid">
@@ -120,7 +123,7 @@ export function MultiProductSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('multi_product.use_template')}
                   </Button>
                 </Link>
               </div>
@@ -142,8 +145,8 @@ export function MultiProductSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 flex items-end p-6">
                 <div className="text-white">
-                  <h3 className="text-xl font-bold">Multi-Product Catalog</h3>
-                  <p className="text-white/80 text-sm">Clean, category-focused layout for product collections</p>
+                  <h3 className="text-xl font-bold">{t('multi_product.multi_product_catalog.title')}</h3>
+                  <p className="text-white/80 text-sm">{t('multi_product.multi_product_catalog.description')}</p>
                 </div>
               </div>
             </div>
@@ -151,7 +154,7 @@ export function MultiProductSection() {
               <div className="flex flex-col gap-2">
                 <Link href="/templates/preview/multi-product-catalog">
                   <Button variant="secondary" className="shadow-lg hover:scale-105 transition-transform">
-                    Live Preview
+                    {t('multi_product.live_preview')}
                   </Button>
                 </Link>
                 <Link href="/dashboard/new?template=multi-product-catalog">
@@ -159,7 +162,7 @@ export function MultiProductSection() {
                     variant="outline"
                     className="bg-background/20 text-white border-white/20 hover:bg-background/30 hover:scale-105 transition-transform"
                   >
-                    Use Template
+                    {t('multi_product.use_template')}
                   </Button>
                 </Link>
               </div>
@@ -179,7 +182,7 @@ export function MultiProductSection() {
               size="lg"
               className="gap-1.5 shadow-lg bg-[#ECB176] hover:bg-[#A67B5B] text-[#6F4E37] hover:scale-105 transition-transform"
             >
-              View All Templates
+              {t('multi_product.view_all_templates')}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

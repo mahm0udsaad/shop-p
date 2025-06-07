@@ -35,32 +35,32 @@ export function RecentOrders({ orders = [] }: RecentOrdersProps) {
   
   if (!orders || orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <ShoppingBag className="h-8 w-8 text-muted-foreground mb-3" />
-        <h3 className="text-sm font-medium mb-1">No Recent Orders</h3>
-        <p className="text-xs text-muted-foreground">When customers place orders, they will appear here.</p>
+      <div className="flex flex-col items-center justify-center py-4 sm:py-8 text-center">
+        <ShoppingBag className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mb-2 sm:mb-3" />
+        <h3 className="text-xs sm:text-sm font-medium mb-1">No Recent Orders</h3>
+        <p className="text-[10px] sm:text-xs text-muted-foreground">When customers place orders, they will appear here.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {orders.map((order, index) => (
         <div key={index} className="flex items-center">
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-full bg-[#FED8B1]/30 flex items-center justify-center">
-              <ShoppingBag className="h-4 w-4 text-[#6F4E37]" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FED8B1]/30 flex items-center justify-center">
+              <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium leading-none">{order.product}</p>
-              <p className="text-xs text-muted-foreground">{order.customer}</p>
+            <div className="space-y-0.5 sm:space-y-1">
+              <p className="text-xs sm:text-sm font-medium leading-none">{order.product}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{order.customer}</p>
             </div>
           </div>
-          <div className="ml-auto text-right flex flex-col items-end gap-1">
-            <p className="text-sm font-medium">{order.amount}</p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-muted-foreground">{order.date}</p>
-              <Badge className={getStatusColor(order.status)}>
+          <div className="ml-auto text-right flex flex-col items-end gap-0.5 sm:gap-1">
+            <p className="text-xs sm:text-sm font-medium">{order.amount}</p>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{order.date}</p>
+              <Badge className={`text-[10px] sm:text-xs px-1.5 py-0 sm:px-2 sm:py-0.5 ${getStatusColor(order.status)}`}>
                 {order.status}
               </Badge>
             </div>

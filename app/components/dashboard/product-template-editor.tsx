@@ -7,44 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/app/components/dashboard/icons";
 import { Label } from "@/components/ui/label";
 import { ColorPicker } from "./color-picker";
-import { ModernTemplate } from "./templates/modern-template-editor";
+import ModernTemplate from "./templates/modern-template-editor";
 import { Input } from "@/components/ui/input";
-import { updateProductTemplateData } from "@/app/dashboard/products/actions";
+import { updateProductTemplateData } from "@/app/[lng]/dashboard/products/actions";
+import { TemplateData } from "@/components/editor/types";
 
-// Types for template data
-interface TemplateData {
-  hero: {
-    title: string;
-    tagline: string;
-    description: string;
-    cta: { text: string; url: string };
-  };
-  whyChoose: {
-    title: string;
-    subtitle: string;
-    benefits: Array<{ title: string; description: string }>;
-  };
-  features: Array<{ title: string; description: string; icon?: string }>;
-  pricing: {
-    currency: string;
-    plans: Array<{
-      name: string;
-      price: number;
-      period: string;
-      features: string[];
-      isFeatured?: boolean;
-      discountNote?: string;
-    }>;
-  };
-  faq: Array<{ question: string; answer: string }>;
-  testimonials: Array<{ quote: string; name: string; avatar?: string; title?: string; rating?: number }>;
-  media: { images: string[]; video?: string };
-  brand: { name: string; contactEmail: string; socialLinks: { twitter?: string; facebook?: string; linkedin?: string } };
-  theme: { primaryColor: string; secondaryColor: string; fontFamily?: string };
-  footer?: string;
-  customFields?: Record<string, any>;
-}
-
+// Types for template data - using imported TemplateData type
 interface Product {
   id: string;
   name: string;
@@ -179,11 +147,24 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
 
   // Initialize template data with defaults for missing properties
   const defaultTemplateData: TemplateData = {
-    hero: { title: '', tagline: '', description: '', cta: { text: '', url: '' } },
+    navbar: {
+      title: '',
+      logo: '',
+      links: [],
+      sticky: true,
+      transparent: false
+    },
+    hero: { title: '', tagline: '', description: '', cta: { text: '', url: '' }, image: '' },
+    about: {
+      title: '',
+      description: '',
+      image: '',
+      features: []
+    },
     whyChoose: { title: '', subtitle: '', benefits: [] },
-    features: [],
-    pricing: { currency: 'USD', plans: [] },
-    faq: [],
+    features: { title: '', subtitle: '', items: [] },
+    pricing: { title: '', subtitle: '', currency: 'USD', plans: [] },
+    faq: { title: '', subtitle: '', items: [] },
     testimonials: [],
     media: { images: [], video: '' },
     brand: { name: '', contactEmail: '', socialLinks: {} },
@@ -297,39 +278,47 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
   return (
     <div className="">
       {/* Sticky Color Palette Bar */}
-      <div className="sticky top-0 z-20 bg-white border-b py-2 flex gap-6 items-center px-4 justify-between">
-        <div className="flex gap-6 items-center">
-          <ColorPicker
-            color={templateData.theme.primaryColor}
-            onChange={handlePrimaryColorChange}
-            label="Primary Color"
-          />
-          <ColorPicker
-            color={templateData.theme.secondaryColor}
-            onChange={handleSecondaryColorChange}
-            label="Secondary Color"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/dashboard/products`)}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={saveChanges}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
+      <div className="sticky top-0 z-20 bg-white border-b py-2 sm:py-3 px-2 sm:px-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 sm:items-center sm:justify-between">
+          <div className="flex flex-col xs:flex-row gap-2 sm:gap-6 xs:items-center">
+            <ColorPicker
+              color={templateData.theme.primaryColor}
+              onChange={handlePrimaryColorChange}
+              label="Primary Color"
+            />
+            <ColorPicker
+              color={templateData.theme.secondaryColor}
+              onChange={handleSecondaryColorChange}
+              label="Secondary Color"
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/dashboard/products`)}
+              className="text-xs sm:text-sm px-3 sm:px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={saveChanges}
+              disabled={isLoading}
+              className="text-xs sm:text-sm px-3 sm:px-4"
+            >
+              {isLoading ? (
+                <>
+                  <Icons.spinner className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  <span className="hidden xs:inline">Saving...</span>
+                  <span className="xs:hidden">Save</span>
+                </>
+              ) : (
+                <>
+                  <span className="hidden xs:inline">Save Changes</span>
+                  <span className="xs:hidden">Save</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -338,12 +327,6 @@ export default function ProductTemplateEditor({ product }: ProductTemplateEditor
         <ModernTemplate
           data={templateData}
           updateData={updateTemplateData}
-          isEditing={true}
-          alwaysShowEdit={true}
-          localImages={localImages}
-          onImageChange={handleImageChange}
-          onAddImage={handleAddImage}
-          onRemoveImage={handleRemoveImage}
         />
       )}
 

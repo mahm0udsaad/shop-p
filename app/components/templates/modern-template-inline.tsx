@@ -12,8 +12,20 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TemplateControls } from "@/app/components/templates/shared/template-controls";
 
 interface TemplateData {
+  navbar?: {
+    logo?: string;
+    title?: string;
+    links?: Array<{
+      text: string;
+      url: string;
+      isButton?: boolean;
+    }>;
+    sticky?: boolean;
+    transparent?: boolean;
+  };
   hero: {
     title: string;
     tagline: string;
@@ -22,10 +34,10 @@ interface TemplateData {
     image?: string;
   };
   about?: {
-    title: string;
-    description: string;
+    title?: string;
+    description?: string;
     image?: string;
-    features: string[];
+    features?: string[];
   };
   whyChoose: {
     title: string;
@@ -83,6 +95,7 @@ interface ModernTemplateInlineProps {
 
 export function ModernTemplateInline({ data, isEditing = false, onUpdate }: ModernTemplateInlineProps) {
   const [editingSections, setEditingSections] = useState<Record<string, boolean>>({});
+  const [editingPricingPlan, setEditingPricingPlan] = useState<number | null>(null);
   const iconOptions = ["sparkles", "shield", "zap", "star", "heart", "rocket", "check", "box", 
     "settings", "globe", "home", "mail", "thumbsUp", "users", "wand", "desktop", "sun", "moon"];
 
@@ -111,6 +124,11 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
     "--primary-color": data.theme.primaryColor,
     "--secondary-color": data.theme.secondaryColor,
   } as React.CSSProperties;
+
+  // Generate dynamic CSS classes for theme colors
+  const primaryColorStyle = { color: data.theme.primaryColor };
+  const secondaryColorStyle = { backgroundColor: data.theme.secondaryColor };
+  const primaryBgStyle = { backgroundColor: data.theme.primaryColor };
 
   // Handle updates for testimonial fields
   const handleTestimonialUpdate = (index: number, fields: EditableField[]) => {
@@ -181,58 +199,181 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
     handleUpdate("whyChoose.benefits", benefits);
   };
 
-  return (
+  // Calculate completion percentage
+  const calculateCompletionPercentage = () => {
+    const requiredFields = [
+      data.hero.title,
+      data.hero.tagline,
+      data.hero.description,
+      data.hero.cta.text,
+      data.whyChoose.title,
+      data.features.title,
+      data.pricing.title,
+      data.faq.title,
+      data.brand.name,
+    ];
+
+    const optionalFields = [
+      data.hero.image,
+      data.navbar?.logo,
+      data.about?.title,
+      data.about?.description,
+      ...data.whyChoose.benefits,
+      ...data.features.items.map(item => item.title),
+      ...data.pricing.plans.map(plan => plan.name),
+      ...data.testimonials.map(t => t.name),
+      ...data.faq.items.map(item => item.question),
+    ];
+
+    const filledRequired = requiredFields.filter(field => field && field.trim() !== '').length;
+    const filledOptional = optionalFields.filter(field => field && field.trim() !== '').length;
+    
+    const requiredWeight = 0.7; // 70% weight for required fields
+    const optionalWeight = 0.3; // 30% weight for optional fields
+    
+    const requiredScore = (filledRequired / requiredFields.length) * requiredWeight;
+    const optionalScore = (filledOptional / optionalFields.length) * optionalWeight;
+    
+    return Math.round((requiredScore + optionalScore) * 100);
+  };
+
+    return (
     <div className="min-h-screen bg-white" style={themeStyle}>
-      {/* Theme Settings */}
-      {isEditing && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="shadow-md">
-                <Icons.paintbrush className="h-4 w-4 mr-2" />
-                Theme
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <h4 className="font-medium">Theme Settings</h4>
-                <div className="space-y-2">
-                  <Label htmlFor="primary-color">Primary Color</Label>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-6 h-6 rounded-full border"
-                      style={{ backgroundColor: data.theme.primaryColor }}
-                    />
-                    <Input
-                      id="primary-color"
-                      type="color"
-                      value={data.theme.primaryColor}
-                      onChange={(e) => handleUpdate("theme.primaryColor", e.target.value)}
-                      className="w-full h-8"
-                    />
-                  </div>
+      {/* Template Controls */}
+      <TemplateControls
+        isEditing={isEditing}
+        completionPercentage={calculateCompletionPercentage()}
+        primaryColor={data.theme.primaryColor}
+        secondaryColor={data.theme.secondaryColor}
+        onPrimaryColorChange={(color) => handleUpdate("theme.primaryColor", color)}
+        onSecondaryColorChange={(color) => handleUpdate("theme.secondaryColor", color)}
+        completionMessage="Keep adding content to improve your template"
+      />
+      {/* Navbar/Header */}
+      <header className={`w-full py-4 px-6 z-10 ${data.navbar?.sticky ? 'sticky top-0' : ''} ${data.navbar?.transparent ? 'bg-transparent' : 'bg-white shadow-sm'}`}>
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center">
+            {/* Logo Component */}
+            {isEditing ? (
+              <div className="relative group">
+                <div className="flex items-center gap-3 p-2 rounded-lg border-2 border-dashed border-gray-200 hover:border-gray-300 transition-colors">
+                  {data.navbar?.logo ? (
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <img 
+                          src={data.navbar.logo} 
+                          alt="Logo" 
+                          className="h-8 w-8 object-contain rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleUpdate("navbar.logo", "")}
+                        >
+                          <Icons.x className="h-2 w-2" />
+                        </Button>
+                      </div>
+                      <div style={primaryColorStyle}>
+                        <InlineEditor
+                          type="text"
+                          value={data.navbar?.title || data.brand?.name || "Your Brand"}
+                          onChange={(value: string) => handleUpdate("navbar.title", value)}
+                          placeholder="Brand Name"
+                          previewClassName="text-xl font-bold"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute cursor-pointer inset-0 w-full h-full opacity-0 z-10"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                if (e.target?.result) {
+                                  handleUpdate("navbar.logo", e.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <div className="cursor-pointer h-8 w-8 border border-gray-300 rounded flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <Icons.image className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                      <div style={primaryColorStyle}>
+                        <InlineEditor
+                          type="text"
+                          value={data.navbar?.title || data.brand?.name || "Your Brand"}
+                          onChange={(value: string) => handleUpdate("navbar.title", value)}
+                          placeholder="Brand Name"
+                          previewClassName="text-xl font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondary-color">Secondary Color</Label>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-6 h-6 rounded-full border"
-                      style={{ backgroundColor: data.theme.secondaryColor }}
-                    />
-                    <Input
-                      id="secondary-color"
-                      type="color" 
-                      value={data.theme.secondaryColor}
-                      onChange={(e) => handleUpdate("theme.secondaryColor", e.target.value)}
-                      className="w-full h-8"
-                    />
-                  </div>
+                <div className="absolute -bottom-6 left-0 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {data.navbar?.logo ? "Click X to remove logo" : "Click to upload logo"}
                 </div>
               </div>
-            </PopoverContent>
-          </Popover>
+            ) : (
+              <div className="flex items-center gap-3">
+                {data.navbar?.logo && (
+                  <img 
+                    src={data.navbar.logo} 
+                    alt="Logo" 
+                    className="h-8 w-8 object-contain"
+                  />
+                )}
+                <div style={primaryColorStyle} className="text-xl font-bold">
+                  {data.navbar?.title || data.brand?.name || "Your Brand"}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <nav className="hidden md:flex items-center gap-4">
+            {(data.navbar?.links || [
+              { text: "Home", url: "#" },
+              { text: "Features", url: "#features" },
+              { text: "Pricing", url: "#pricing" },
+              { text: "Contact", url: "#contact", isButton: true }
+            ]).map((link, index) => (
+              <div key={index}>
+                {link.isButton ? (
+                  <Button 
+                    style={secondaryColorStyle}
+                    className="text-white hover:opacity-90"
+                  >
+                    {link.text}
+                  </Button>
+                ) : (
+                  <a 
+                    href={link.url} 
+                    className="text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    {link.text}
+                  </a>
+                )}
+              </div>
+            ))}
+          </nav>
+
+          {/* Mobile menu button - only for display purposes */}
+          <Button variant="ghost" size="icon" className="md:hidden">
+            <Icons.menu className="h-6 w-6" />
+          </Button>
         </div>
-      )}
+      </header>
 
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
@@ -265,7 +406,8 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               
               <div className="flex flex-wrap gap-4">
                 <Button 
-                  className="bg-primary hover:bg-primary/90 text-white"
+                  style={primaryBgStyle}
+                  className="text-white hover:opacity-90"
                   size="lg"
                 >
                   <InlineEditor
@@ -280,7 +422,7 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
               </div>
             </div>
             
-            <div className="relative h-[350px] rounded-lg overflow-hidden shadow-xl">
+            <div className="relative h-full rounded-lg overflow-hidden shadow-xl">
               <InlineEditor
                 type="image"
                 value={data.hero.image || ""}
@@ -292,82 +434,6 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
           </div>
         </div>
       </section>
-
-      {/* About Section (if exists) */}
-      {data.about && (
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div className="rounded-lg overflow-hidden shadow-lg">
-                <InlineEditor
-                  type="image"
-                  value={data.about.image || ""}
-                  onChange={(value: string) => handleUpdate("about.image", value)}
-                  imageSize="lg"
-                  className="w-full h-full aspect-square"
-                />
-              </div>
-              
-              <div className="space-y-6">
-                <InlineEditor
-                  type="text"
-                  value={data.about.title}
-                  onChange={(value: string) => handleUpdate("about.title", value)}
-                  placeholder="About Our Product"
-                  previewClassName="text-3xl font-bold tracking-tight text-gray-900 mb-4"
-                />
-                
-                <InlineEditor
-                  type="textarea"
-                  value={data.about.description}
-                  onChange={(value: string) => handleUpdate("about.description", value)}
-                  placeholder="Describe what makes your product special"
-                  previewClassName="text-gray-600"
-                />
-                
-                <div className="space-y-2 mt-4">
-                  <h3 className="font-semibold text-lg mb-3">Key Features</h3>
-                  <div className="space-y-2">
-                    {data.about.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="flex-shrink-0 h-5 w-5 text-primary">
-                          <Icons.check className="h-5 w-5" />
-                        </div>
-                        <InlineEditor
-                          type="text"
-                          value={feature}
-                          onChange={(value: string) => {
-                            const features = [...data.about!.features];
-                            features[index] = value;
-                            handleUpdate("about.features", features);
-                          }}
-                          placeholder={`Feature ${index + 1}`}
-                          previewClassName="text-gray-600"
-                        />
-                      </div>
-                    ))}
-                    
-                    {isEditing && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => {
-                          const features = [...data.about!.features, "New Feature"];
-                          handleUpdate("about.features", features);
-                        }}
-                      >
-                        <Icons.plus className="h-4 w-4 mr-1" /> Add Feature
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Why Choose Us Section */}
       <section className="py-20 bg-gray-50">
@@ -513,6 +579,82 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
         </div>
       </section>
 
+      {/* About Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="rounded-lg overflow-hidden shadow-lg h-full">
+              <InlineEditor
+                type="image"
+                value={data.about?.image || ""}
+                onChange={(value: string) => handleUpdate("about.image", value)}
+                imageSize="lg"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <div className="space-y-6">
+              <InlineEditor
+                type="text"
+                value={data.about?.title || "About Our Product"}
+                onChange={(value: string) => handleUpdate("about.title", value)}
+                placeholder="About Our Product"
+                previewClassName="text-3xl font-bold tracking-tight text-gray-900 mb-4"
+              />
+              
+              <InlineEditor
+                type="textarea"
+                value={data.about?.description || "Describe what makes your product special"}
+                onChange={(value: string) => handleUpdate("about.description", value)}
+                placeholder="Describe what makes your product special"
+                previewClassName="text-gray-600"
+              />
+              
+              <div className="space-y-2 mt-4">
+                <h3 className="font-semibold text-lg mb-3">Key Features</h3>
+                <div className="space-y-2">
+                  {(data.about?.features || ["Feature 1", "Feature 2", "Feature 3"]).map((feature, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-shrink-0 h-5 w-5 text-primary">
+                        <Icons.check className="h-5 w-5" />
+                      </div>
+                      <InlineEditor
+                        type="text"
+                        value={feature}
+                        onChange={(value: string) => {
+                          const currentFeatures = data.about?.features || ["Feature 1", "Feature 2", "Feature 3"];
+                          const features = [...currentFeatures];
+                          features[index] = value;
+                          handleUpdate("about.features", features);
+                        }}
+                        placeholder={`Feature ${index + 1}`}
+                        previewClassName="text-gray-600"
+                      />
+                    </div>
+                  ))}
+                  
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        const currentFeatures = data.about?.features || [];
+                        const features = [...currentFeatures, "New Feature"];
+                        handleUpdate("about.features", features);
+                      }}
+                    >
+                      <Icons.plus className="h-4 w-4 mr-1" /> Add Feature
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
@@ -536,93 +678,137 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {data.pricing.plans.map((plan, index) => (
-              <EditableCard
+              <div
                 key={index}
-                fields={[
-                  {
-                    id: "name",
-                    type: "text",
-                    label: "Plan Name",
-                    value: plan.name,
-                    placeholder: "Plan Name"
-                  },
-                  {
-                    id: "price",
-                    type: "text",
-                    label: "Price",
-                    value: plan.price.toString(),
-                    placeholder: "29"
-                  },
-                  {
-                    id: "period",
-                    type: "text",
-                    label: "Period",
-                    value: plan.period,
-                    placeholder: "per month"
-                  },
-                  {
-                    id: "discountNote",
-                    type: "text",
-                    label: "Discount Note (optional)",
-                    value: plan.discountNote || "",
-                    placeholder: "Save 20% with annual billing"
-                  }
-                ]}
-                onSave={(fields) => handlePlanUpdate(index, fields)}
                 className={cn(
-                  "h-full transition-all",
-                  plan.isFeatured ? "border-primary shadow-lg scale-105 relative z-10 bg-white" : "bg-white"
+                  "relative bg-white border rounded-lg p-6 h-full transition-all",
+                  plan.isFeatured ? "border-primary shadow-lg scale-105 z-10" : "border-gray-200",
+                  editingPricingPlan === index && "border-primary shadow-lg ring-2 ring-primary/20"
                 )}
               >
-                <div className="text-center mb-6">
-                  <div className="text-3xl font-bold mb-1">
-                    <span className="text-lg align-top">{data.pricing.currency}</span>
-                    {plan.price}
-                  </div>
-                  <div className="text-sm text-gray-500">{plan.period}</div>
-                  {plan.discountNote && (
-                    <div className="text-xs text-primary mt-1">{plan.discountNote}</div>
+                {/* Edit Button */}
+                <div className="absolute top-3 right-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-full w-8 h-8 p-0"
+                    onClick={() => setEditingPricingPlan(editingPricingPlan === index ? null : index)}
+                  >
+                    {editingPricingPlan === index ? (
+                      <Icons.x className="h-3 w-3" />
+                    ) : (
+                      <Icons.pencil className="h-3 w-3" />
                   )}
+                  </Button>
                 </div>
                 
-                {plan.isFeatured && (
-                  <div className="absolute top-0 right-0 bg-primary text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg font-medium">
-                    Popular
+                {editingPricingPlan === index ? (
+                  /* Edit Form */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Icons.pencil className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Editing Plan</span>
                   </div>
-                )}
-                
-                <div className="space-y-2 mb-6">
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Plan Name</label>
+                        <Input
+                          value={plan.name}
+                          onChange={(e) => {
+                            const updatedPlan = { ...plan, name: e.target.value };
+                            const plans = [...data.pricing.plans];
+                            plans[index] = updatedPlan;
+                            handleUpdate("pricing.plans", plans);
+                          }}
+                          placeholder="Plan Name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Price</label>
+                        <Input
+                          type="number"
+                          value={plan.price}
+                          onChange={(e) => {
+                            const updatedPlan = { ...plan, price: Number(e.target.value) };
+                            const plans = [...data.pricing.plans];
+                            plans[index] = updatedPlan;
+                            handleUpdate("pricing.plans", plans);
+                          }}
+                          placeholder="29"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Period</label>
+                        <Input
+                          value={plan.period}
+                          onChange={(e) => {
+                            const updatedPlan = { ...plan, period: e.target.value };
+                            const plans = [...data.pricing.plans];
+                            plans[index] = updatedPlan;
+                            handleUpdate("pricing.plans", plans);
+                          }}
+                          placeholder="per month"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Discount Note (optional)</label>
+                        <Input
+                          value={plan.discountNote || ""}
+                          onChange={(e) => {
+                            const updatedPlan = { ...plan, discountNote: e.target.value };
+                            const plans = [...data.pricing.plans];
+                            plans[index] = updatedPlan;
+                            handleUpdate("pricing.plans", plans);
+                          }}
+                          placeholder="Save 20% with annual billing"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Features</label>
                   {plan.features.map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-center gap-2">
-                      <Icons.check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <InlineEditor
-                        type="text"
+                            <Input
                         value={feature}
-                        onChange={(value: string) => {
+                              onChange={(e) => {
                           const updatedPlan = { ...plan };
                           updatedPlan.features = [...plan.features];
-                          updatedPlan.features[featureIndex] = value;
-                          
+                                updatedPlan.features[featureIndex] = e.target.value;
                           const plans = [...data.pricing.plans];
                           plans[index] = updatedPlan;
                           handleUpdate("pricing.plans", plans);
                         }}
                         placeholder={`Feature ${featureIndex + 1}`}
-                        className="flex-1"
-                      />
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const updatedPlan = { ...plan };
+                                updatedPlan.features = plan.features.filter((_, i) => i !== featureIndex);
+                                const plans = [...data.pricing.plans];
+                                plans[index] = updatedPlan;
+                                handleUpdate("pricing.plans", plans);
+                              }}
+                            >
+                              <Icons.trash className="h-3 w-3" />
+                            </Button>
                     </div>
                   ))}
-                  
-                  {isEditing && (
                     <Button
                       type="button"
-                      variant="ghost"
+                          variant="outline"
                       size="sm"
-                      className="w-full mt-2"
+                          className="w-full"
                       onClick={() => {
                         const updatedPlan = { ...plan };
                         updatedPlan.features = [...plan.features, "New Feature"];
-                        
                         const plans = [...data.pricing.plans];
                         plans[index] = updatedPlan;
                         handleUpdate("pricing.plans", plans);
@@ -630,17 +816,9 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
                     >
                       <Icons.plus className="h-3 w-3 mr-1" /> Add Feature
                     </Button>
-                  )}
                 </div>
                 
-                <Button className="w-full bg-primary text-white hover:bg-primary/90">
-                  Choose Plan
-                </Button>
-                
-                {isEditing && (
-                  <div className="mt-4 flex justify-between items-center text-sm">
                     <div className="flex items-center gap-2">
-                      <label className="text-gray-600">Featured</label>
                       <input
                         type="checkbox"
                         checked={plan.isFeatured}
@@ -650,26 +828,67 @@ export function ModernTemplateInline({ data, isEditing = false, onUpdate }: Mode
                           plans[index] = updatedPlan;
                           handleUpdate("pricing.plans", plans);
                         }}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <label className="text-sm text-gray-700">Featured Plan</label>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Preview */
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className="text-3xl font-bold mb-1">
+                        <span className="text-lg align-top">{data.pricing.currency}</span>
+                        {plan.price}
+                      </div>
+                      <div className="text-sm text-gray-500">{plan.period}</div>
+                      {plan.discountNote && (
+                        <div className="text-xs text-primary mt-1">{plan.discountNote}</div>
+                      )}
                     </div>
                     
-                    {data.pricing.plans.length > 1 && (
+                    {plan.isFeatured && (
+                      <div className="absolute top-0 right-0 bg-primary text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-lg font-medium">
+                        Popular
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2 mb-6">
+                      {plan.features.map((feature, featureIndex) => (
+                        <div key={featureIndex} className="flex items-center gap-2">
+                          <Icons.check className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button 
+                      style={primaryBgStyle}
+                      className="w-full text-white hover:opacity-90"
+                    >
+                      Choose Plan
+                    </Button>
+                  </div>
+                )}
+
+                {/* Remove Plan Button */}
+                {isEditing && data.pricing.plans.length > 1 && editingPricingPlan !== index && (
+                  <div className="absolute bottom-3 left-3">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full w-8 h-8 p-0"
                         onClick={() => {
                           const plans = data.pricing.plans.filter((_, i) => i !== index);
                           handleUpdate("pricing.plans", plans);
                         }}
                       >
-                        <Icons.trash className="h-3 w-3 mr-1" /> Remove
+                      <Icons.trash className="h-3 w-3" />
                       </Button>
-                    )}
                   </div>
                 )}
-              </EditableCard>
+              </div>
             ))}
           </div>
           

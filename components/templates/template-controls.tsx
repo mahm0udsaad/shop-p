@@ -2,41 +2,50 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Icons } from "@/components/icons";
 import { useTemplate } from "@/contexts/template-context";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Globe, Palette, Save, Search, Settings } from "lucide-react";
+import { Check, Globe, Rocket, Languages, Search, Palette, Sparkles, Heart, Star, ArrowRight, ExternalLink, Home } from "lucide-react";
 import Confetti from 'react-confetti';
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { DomainValidator } from "@/app/dashboard/new/components/domain-validator";
-import { createProduct } from "@/app/dashboard/new/actions";
+import { DomainValidator } from "@/app/[lng]/dashboard/new/components/domain-validator";
+import { createProduct } from "@/app/[lng]/dashboard/new/actions";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from '@/lib/i18n/client';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export function TemplateControls() {
-  const { state, dispatch, colorPalettes } = useTemplate();
+  const { state, dispatch, colorPalettes, saveChanges, isSaving, isEditMode } = useTemplate();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("domain");
+  const [currentStep, setCurrentStep] = useState(0);
   const [domainError, setDomainError] = useState("");
-  const [published, setPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishingStep, setPublishingStep] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [domainType, setDomainType] = useState<"subdomain" | "custom">("subdomain");
   const [subdomain, setSubdomain] = useState("");
   const [customDomain, setCustomDomain] = useState("");
   const [isSubdomainValid, setIsSubdomainValid] = useState<boolean | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [languagePreference, setLanguagePreference] = useState(state.languagePreference || 'auto');
+  const [publishedDomain, setPublishedDomain] = useState("");
   const router = useRouter();
+  const { t } = useTranslation();
+
+  // Steps configuration
+  const steps = [
+    { key: 'language', icon: Languages, title: t('templateControls.steps.language.title') },
+    { key: 'seo', icon: Search, title: t('templateControls.steps.seo.title') },
+    { key: 'domain', icon: Globe, title: t('templateControls.steps.domain.title') }
+  ];
 
   useEffect(() => {
-    // Initialize subdomain from state
     if (state.domain) {
       if (state.domain.endsWith('.shipfaster.tech')) {
         const sub = state.domain.replace('.shipfaster.tech', '');
@@ -50,7 +59,6 @@ export function TemplateControls() {
   }, [state.domain]);
 
   useEffect(() => {
-    // Get window size for confetti
     const updateWindowSize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
@@ -142,48 +150,42 @@ export function TemplateControls() {
     return domainRegex.test(domain);
   };
 
+  const handleLanguagePreferenceChange = (value: string) => {
+    setLanguagePreference(value);
+    dispatch({ type: 'UPDATE_LANGUAGE_PREFERENCE', languagePreference: value });
+  };
+
   const prepareFormData = () => {
     const formData = new FormData();
-
-    // Extract data from state.templateData
     const { hero, features, whyChoose, testimonials, faq, theme, brand } = state.templateData;
 
-    // Required fields
     formData.append("name", hero?.title || "Website Template");
     formData.append("description", hero?.description || "");
     formData.append("tagline", hero?.tagline || "");
 
-    // Domain - based on selected type
     if (domainType === "subdomain") {
       formData.append("domain", subdomain);
     } else {
-      // For custom domains, we might need special handling
       formData.append("domain", customDomain);
       formData.append("customDomain", "true");
     }
 
-    // Template type
     formData.append("template", "modern");
     formData.append("product_type", "single");
-
-    // Colors
     formData.append("color", theme?.primaryColor || "#6F4E37");
     formData.append("accentColor", theme?.secondaryColor || "#ECB176");
 
-    // Convert features to the expected format
     const featuresAsString = features?.items
       ?.map((item: { title: string; description: string }) => item.title + ": " + item.description)
       .join("\n") || "";
     formData.append("features", featuresAsString);
 
-    // Convert benefits to the expected format
     const benefitsAsString = whyChoose?.benefits
       ?.map((benefit: string | { text: string; icon?: string }) => 
         typeof benefit === 'string' ? benefit : benefit.text)
       .join("\n") || "";
     formData.append("benefits", benefitsAsString);
 
-    // JSON objects
     formData.append("faq", JSON.stringify(faq?.items || []));
     formData.append("testimonials", JSON.stringify(testimonials || []));
     formData.append("seo", JSON.stringify(state.seo || {}));
@@ -192,49 +194,71 @@ export function TemplateControls() {
     formData.append("colors", JSON.stringify([]));
     formData.append("sizes", JSON.stringify([]));
     formData.append("callToAction", JSON.stringify(hero?.cta || { text: "", url: "" }));
-
-    // Price (placeholder)
     formData.append("price", "0");
+    formData.append("templateData", JSON.stringify(state.templateData));
 
     return formData;
   };
 
-  const handlePublish = async () => {
-    // Check if domain is set up
-    if (!state.domain) {
-      setOpen(true);
-      setActiveTab("domain");
-      return;
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 2: // Domain step (now index 2 instead of 3)
+        if (domainType === "subdomain") {
+          return isSubdomainValid === true;
+        } else {
+          return validateCustomDomain(customDomain);
+        }
+      default:
+        return true;
     }
+  };
 
-    // Validate domain based on the type
-    if (domainType === "subdomain") {
-      if (!isSubdomainValid) {
-        setOpen(true);
-        setActiveTab("domain");
-        setDomainError("Please select a valid subdomain before publishing");
-        return;
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      if (validateStep(currentStep)) {
+        setCurrentStep(currentStep + 1);
+        setDomainError("");
+      } else if (currentStep === 2) {
+        setDomainError("Please select a valid domain before continuing");
       }
     } else {
-      if (!validateCustomDomain(customDomain)) {
-        setOpen(true);
-        setActiveTab("domain");
-        setDomainError("Please enter a valid domain before publishing");
-        return;
+      handlePublish();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      setDomainError("");
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!validateStep(currentStep)) {
+      if (currentStep === 2) {
+        setDomainError("Please select a valid domain before publishing");
       }
+      return;
     }
 
     try {
       setIsPublishing(true);
+      setPublishingStep(0);
+
+      const publishingSteps = t('templateControls.publishing.steps');
       
-      // Prepare form data for the API
+      // Simulate publishing steps with realistic timing
+      for (let i = 0; i < publishingSteps.length; i++) {
+        setPublishingStep(i);
+        await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+      }
+
       const formData = prepareFormData();
-      
-      // Call the createProduct action
       const result = await createProduct(formData, user?.id);
       
       if (result && result.success) {
-        setPublished(true);
+        setPublishedDomain(result.domain + ".shipfaster.tech");
+        setIsComplete(true);
         toast({
           title: "Website published!",
           description: `Your website has been published to ${result.domain}.shipfaster.tech`,
@@ -249,21 +273,179 @@ export function TemplateControls() {
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
-    } finally {
       setIsPublishing(false);
     }
   };
 
+  const handleAction = async () => {
+    if (isEditMode) {
+      try {
+        await saveChanges();
+        toast({
+          title: "Changes saved",
+          description: "Your template changes have been successfully saved.",
+        });
+        router.push('/dashboard');
+      } catch (error) {
+        console.error("Failed to save changes:", error);
+        toast({
+          title: "Failed to save changes",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setOpen(true);
+      setCurrentStep(0);
+    }
+  };
+
   const goToDashboard = () => {
+    setOpen(false);
     router.push('/dashboard');
   };
 
   const previewWebsite = () => {
-    // Open in new tab
-    window.open(`/preview?domain=${state.domain}`, '_blank');
+    window.open(`https://${publishedDomain}`, '_blank');
   };
 
-  if (published) {
+  const renderStepContent = () => {
+    const step = steps[currentStep];
+    
+    switch (step.key) {
+      case 'language':
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">{t('templateControls.steps.language.title')}</h3>
+              <p className="text-muted-foreground">{t('templateControls.steps.language.subtitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('templateControls.steps.language.description')}</p>
+            </div>
+            <RadioGroup
+              value={languagePreference}
+              onValueChange={handleLanguagePreferenceChange}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem value="auto" id="lang-auto" />
+                <Label htmlFor="lang-auto" className="flex-1">{t('templateControls.language.auto')}</Label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem value="ar" id="lang-ar" />
+                <Label htmlFor="lang-ar" className="flex-1">{t('templateControls.language.ar')}</Label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem value="en" id="lang-en" />
+                <Label htmlFor="lang-en" className="flex-1">{t('templateControls.language.en')}</Label>
+              </div>
+            </RadioGroup>
+            <p className="text-sm text-muted-foreground">{t('templateControls.language.help')}</p>
+          </div>
+        );
+
+      case 'seo':
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">{t('templateControls.steps.seo.title')}</h3>
+              <p className="text-muted-foreground">{t('templateControls.steps.seo.subtitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('templateControls.steps.seo.description')}</p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Page Title</Label>
+                <Input
+                  value={state.seo.title}
+                  onChange={(e) => handleSEOUpdate({ ...state.seo, title: e.target.value })}
+                  placeholder="Enter page title"
+                />
+              </div>
+              <div>
+                <Label>Meta Description</Label>
+                <Textarea
+                  value={state.seo.description}
+                  onChange={(e) => handleSEOUpdate({ ...state.seo, description: e.target.value })}
+                  placeholder="Enter meta description"
+                />
+              </div>
+              <div>
+                <Label>Keywords (comma-separated)</Label>
+                <Input
+                  value={state.seo.keywords.join(", ")}
+                  onChange={(e) =>
+                    handleSEOUpdate({
+                      ...state.seo,
+                      keywords: e.target.value.split(",").map((k) => k.trim()),
+                    })
+                  }
+                  placeholder="keyword1, keyword2, keyword3"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'domain':
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-semibold">{t('templateControls.steps.domain.title')}</h3>
+              <p className="text-muted-foreground">{t('templateControls.steps.domain.subtitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('templateControls.steps.domain.description')}</p>
+            </div>
+            <RadioGroup 
+              value={domainType}
+              onValueChange={(value) => handleDomainChange(value as "subdomain" | "custom")}
+              className="space-y-4"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                  <RadioGroupItem value="subdomain" id="subdomain" />
+                  <Label htmlFor="subdomain">Use a subdomain on shipfaster.tech</Label>
+                </div>
+                
+                {domainType === "subdomain" && (
+                  <div className="ml-6">
+                    <DomainValidator
+                      value={subdomain}
+                      onChange={handleSubdomainChange} 
+                      onValidationChange={handleSubdomainValidationChange}
+                      className="mb-2"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                  <RadioGroupItem value="custom" id="custom-domain" />
+                  <Label htmlFor="custom-domain">Use a custom domain</Label>
+                </div>
+
+                {domainType === "custom" && (
+                  <div className="ml-6 space-y-2">
+                    <Input
+                      value={customDomain}
+                      onChange={(e) => handleCustomDomainChange(e.target.value)}
+                      placeholder="yourdomain.com"
+                    />
+                    <p className="text-sm text-amber-600">
+                      You'll need to configure your DNS settings to point to our servers.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </RadioGroup>
+            {domainError && <p className="text-sm text-red-500 text-center">{domainError}</p>}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  if (isComplete) {
     return (
       <>
         {windowSize.width > 0 && (
@@ -274,194 +456,232 @@ export function TemplateControls() {
             numberOfPieces={500}
           />
         )}
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <Card className="w-full max-w-md p-6 space-y-6 text-center">
-            <h2 className="text-2xl font-bold">Published Successfully!</h2>
-            <p className="text-gray-600">
-              Your website has been published to <span className="font-semibold">{state.domain}</span>
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button onClick={goToDashboard} variant="outline">
-                Go to Dashboard
-              </Button>
-              <Button onClick={previewWebsite}>
-                Preview Website
-              </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-md">
+            <div className="text-center space-y-6 py-6">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">{t('templateControls.steps.success.title')}</h3>
+                <p className="text-muted-foreground">{t('templateControls.steps.success.subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('templateControls.steps.success.description')}</p>
+              </div>
+              <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                <Globe className="w-4 h-4 inline mr-2" />
+                {publishedDomain}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={goToDashboard} variant="outline" className="flex-1">
+                  <Home className="w-4 h-4 mr-2" />
+                  {t('templateControls.buttons.dashboard')}
+                </Button>
+                <Button onClick={previewWebsite} className="flex-1">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  {t('templateControls.buttons.viewWebsite')}
+                </Button>
+              </div>
             </div>
-          </Card>
-        </div>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
-
   return (
     <>
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50">
-        {/* Settings Button */}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-        <Button
-          size="icon"
-              className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-shadow"
-        >
-              <Settings className="h-6 w-6" />
-        </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Template Settings</DialogTitle>
-            </DialogHeader>
-            
-            <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="mt-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="domain">
-                  <Globe className="h-4 w-4 mr-2" />
-                  Domain
-                </TabsTrigger>
-                <TabsTrigger value="theme">
-                  <Palette className="h-4 w-4 mr-2" />
-                  Theme
-                </TabsTrigger>
-                <TabsTrigger value="seo">
-                  <Search className="h-4 w-4 mr-2" />
-                  SEO
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* Domain Tab - Now First */}
-              <TabsContent value="domain" className="space-y-4 py-4">
-                <RadioGroup 
-                  defaultValue={domainType}
-                  value={domainType}
-                  onValueChange={(value) => handleDomainChange(value as "subdomain" | "custom")}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="subdomain" id="subdomain" />
-                    <Label htmlFor="subdomain">Use a subdomain on shipfaster.tech</Label>
-                  </div>
-                  
-                  {domainType === "subdomain" && (
-                    <div className="ml-6">
-                      <DomainValidator
-                        value={subdomain}
-                        onChange={handleSubdomainChange} 
-                        onValidationChange={handleSubdomainValidationChange}
-                        className="mb-2"
-                      />
+      {/* Theme Button */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-3">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="shadow-md text-xs sm:text-sm px-3 sm:px-4"
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Theme
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4 max-h-60 overflow-y-auto">
+              <h4 className="font-medium leading-none">Color Palettes</h4>
+              <div className="space-y-3">
+                {colorPalettes.map((palette, index) => (
+                  <button
+                    key={index}
+                    className="w-full p-3 rounded-lg border hover:border-primary transition-colors text-left"
+                    onClick={() => handleColorPaletteSelect(palette)}
+                  >
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">{palette.name}</div>
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: palette.primary }} />
+                        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: palette.secondary }} />
+                        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: palette.text }} />
+                        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: palette.accent }} />
+                      </div>
                     </div>
-                  )}
-                  
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom-domain" />
-                    <Label htmlFor="custom-domain">Use a custom domain</Label>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-                  {domainType === "custom" && (
-                    <div className="ml-6 space-y-2">
-                      <Input
-                        id="customDomainInput"
-                        value={customDomain}
-                        onChange={(e) => handleCustomDomainChange(e.target.value)}
-                        placeholder="yourdomain.com"
-                      />
-                      {domainError && <p className="text-sm text-red-500">{domainError}</p>}
-                      <p className="text-sm text-gray-500">
-                        Enter your domain name to publish your site (e.g. example.com)
-                      </p>
-                      <p className="text-sm text-amber-600">
-                        You'll need to configure your DNS settings to point to our servers.
-                      </p>
-                    </div>
-                  )}
-                </RadioGroup>
-              </TabsContent>
-              
-              {/* Theme Tab */}
-              <TabsContent value="theme" className="py-4">
-          <div className="grid grid-cols-2 gap-4">
-            {colorPalettes.map((palette, index) => (
-              <button
-                key={index}
-                className="p-4 rounded-lg border hover:border-primary transition-colors"
-                onClick={() => handleColorPaletteSelect(palette)}
-              >
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">{palette.name}</div>
-                  <div className="flex gap-2">
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: palette.primary }} />
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: palette.secondary }} />
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: palette.text }} />
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: palette.accent }} />
+      {/* Main Publish Button */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+  <div className="group relative">
+    <Button
+      size="lg"
+      className={` gap-0 rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 ${
+        isEditMode 
+          ? 'bg-blue-600 hover:bg-blue-700' 
+          : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+      } text-white border-0 group-hover:px-8`}
+      onClick={handleAction}
+      disabled={isSaving}
+    >
+      {isSaving ? (
+        <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      ) : (
+        <Rocket className="w-6 h-6" />
+      )}
+      <span className="mx-0 group-hover:mx-3 max-w-0 group-hover:max-w-xs overflow-hidden transition-all duration-300 ease-out whitespace-nowrap">
+        {isEditMode ? 'Save Changes' : t('templateControls.buttons.publish')}
+      </span>
+    </Button>
+  </div>
+</div>
+
+      {/* Step-by-step Modal */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          {isPublishing ? (
+            // Publishing Animation
+            <div className="text-center space-y-6 py-8">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
+                <div className="relative">
+                  <Rocket className="w-10 h-10 text-purple-600 animate-bounce" />
+                  <div className="absolute -top-1 -right-1">
+                    <Sparkles className="w-4 h-4 text-pink-500 animate-pulse" />
                   </div>
                 </div>
-              </button>
-            ))}
-          </div>
-              </TabsContent>
+              </div>
               
-              {/* SEO Tab */}
-              <TabsContent value="seo" className="space-y-4 py-4">
-            <div>
-              <Label>Page Title</Label>
-              <Input
-                value={state.seo.title}
-                onChange={(e) => handleSEOUpdate({ ...state.seo, title: e.target.value })}
-                placeholder="Enter page title"
-              />
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">{t('templateControls.steps.publishing.title')}</h3>
+                <p className="text-muted-foreground">{t('templateControls.steps.publishing.subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('templateControls.steps.publishing.description')}</p>
+              </div>
+
+              <div className="space-y-3">
+              {t('templateControls.publishing.steps').split(',').map((step: string, index: number) => (
+                  <div 
+                    key={index} 
+                    className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-500 ${
+                      index <= publishingStep 
+                        ? 'bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200' 
+                        : 'bg-muted/50'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      index < publishingStep 
+                        ? 'bg-green-500' 
+                        : index === publishingStep 
+                        ? 'bg-purple-500' 
+                        : 'bg-gray-300'
+                    }`}>
+                      {index < publishingStep ? (
+                        <Check className="w-4 h-4 text-white" />
+                      ) : index === publishingStep ? (
+                        <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                      ) : (
+                        <div className="w-3 h-3 bg-gray-500 rounded-full" />
+                      )}
+                    </div>
+                    <span className={`text-sm ${
+                      index <= publishingStep ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    }`}>
+                      {step}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center space-x-2 text-purple-600">
+                <Heart className="w-4 h-4 animate-pulse" />
+                <span className="text-sm">Making something beautiful...</span>
+                <Star className="w-4 h-4 animate-pulse" />
+              </div>
             </div>
-            <div>
-              <Label>Meta Description</Label>
-              <Textarea
-                value={state.seo.description}
-                onChange={(e) => handleSEOUpdate({ ...state.seo, description: e.target.value })}
-                placeholder="Enter meta description"
-              />
-            </div>
-            <div>
-              <Label>Keywords (comma-separated)</Label>
-              <Input
-                value={state.seo.keywords.join(", ")}
-                onChange={(e) =>
-                  handleSEOUpdate({
-                    ...state.seo,
-                    keywords: e.target.value.split(",").map((k) => k.trim()),
-                  })
-                }
-                placeholder="keyword1, keyword2, keyword3"
-              />
-            </div>
-            <div>
-              <Label>OG Image URL</Label>
-              <Input
-                value={state.seo.ogImage}
-                onChange={(e) => handleSEOUpdate({ ...state.seo, ogImage: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-              </TabsContent>
-            </Tabs>
+          ) : (
+            // Step Content
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center">
+                  <div className="flex items-center justify-center space-x-2">
+                  {(() => {
+                const IconComponent = steps[currentStep].icon;
+                  return <IconComponent className="w-6 h-6" />;
+                })()}                 
+                   <span>{steps[currentStep].title}</span>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Progress Indicator */}
+              <div className="flex items-center justify-center space-x-2 mb-6">
+                {steps.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index <= currentStep 
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500' 
+                        : 'bg-gray-200'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Step Content */}
+              <div className="min-h-[300px]">
+                {renderStepContent()}
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBack}
+                  disabled={currentStep === 0}
+                >
+                  {t('templateControls.buttons.back')}
+                </Button>
+                
+                <Button 
+                  onClick={handleNext}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  {currentStep === steps.length - 1 ? (
+                    <>
+                      <Rocket className="w-4 h-4 mx-2" />
+                      {t('templateControls.buttons.publish')}
+                    </>
+                  ) : (
+                    <>
+                      {t('templateControls.buttons.next')}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
-
-        {/* Publish Button */}
-        <Button
-          size="icon"
-          variant="default"
-          className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-shadow bg-green-600 hover:bg-green-700"
-          onClick={handlePublish}
-          disabled={isPublishing}
-        >
-          {isPublishing ? (
-            <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          ) : (
-            <Save className="h-6 w-6" />
-          )}
-        </Button>
-          </div>
     </>
   );
 } 

@@ -2,8 +2,11 @@
 
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function TrustedBrandsSection() {
+  const { t } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -30,10 +33,10 @@ export function TrustedBrandsSection() {
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2 animate-on-scroll">
             <div className="inline-block rounded-lg bg-[#FED8B1]/30 px-3 py-1 text-sm text-[#6F4E37]">
-              Trusted by brands worldwide
+              {t('trusted_brands.badge')}
             </div>
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-[#6F4E37]">
-              The easiest way to showcase your products online
+              {t('trusted_brands.title')}
             </h2>
           </div>
         </div>
@@ -64,9 +67,9 @@ export function TrustedBrandsSection() {
                     <path d="M12 5v14" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-[#6F4E37]">Custom Subdomains</h3>
+                <h3 className="text-xl font-bold text-[#6F4E37]">{t('trusted_brands.custom_subdomains.title')}</h3>
                 <p className="text-[#A67B5B] mt-2">
-                  Get a unique URL like product-name.showcase.com for each of your products
+                  {t('trusted_brands.custom_subdomains.description')}
                 </p>
               </CardContent>
             </Card>
@@ -93,9 +96,9 @@ export function TrustedBrandsSection() {
                     <path d="M10 6h8v4h-8V6Z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-[#6F4E37]">Professional Templates</h3>
+                <h3 className="text-xl font-bold text-[#6F4E37]">{t('trusted_brands.professional_templates.title')}</h3>
                 <p className="text-[#A67B5B] mt-2">
-                  Choose from multiple templates inspired by leading e-commerce platforms
+                  {t('trusted_brands.professional_templates.description')}
                 </p>
               </CardContent>
             </Card>
@@ -122,9 +125,9 @@ export function TrustedBrandsSection() {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-[#6F4E37]">Order Management</h3>
+                <h3 className="text-xl font-bold text-[#6F4E37]">{t('trusted_brands.order_management.title')}</h3>
                 <p className="text-[#A67B5B] mt-2">
-                  Collect orders through a simple form and manage them in your dashboard
+                  {t('trusted_brands.order_management.description')}
                 </p>
               </CardContent>
             </Card>

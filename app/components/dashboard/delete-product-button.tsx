@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { deleteProduct } from "@/app/dashboard/products/actions"
+import { deleteProduct } from "@/app/[lng]/dashboard/products/actions"
 import { useToast } from "@/hooks/use-toast"
 
 interface DeleteProductButtonProps {

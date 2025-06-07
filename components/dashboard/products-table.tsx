@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { deleteProduct, toggleProductPublished } from "@/app/dashboard/products/actions"
+import { deleteProduct, toggleProductPublished } from "@/app/[lng]/dashboard/products/actions"
 import { formatDate } from "@/lib/utils"
 import type { Database } from "@/lib/database.types"
 

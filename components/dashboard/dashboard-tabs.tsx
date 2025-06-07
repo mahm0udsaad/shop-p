@@ -46,33 +46,35 @@ interface DashboardTabsProps {
 
 export function DashboardTabs({ products, analytics, selectedProductId }: DashboardTabsProps) {
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
-      <div className="flex justify-between">
-        <TabsList className="bg-[#FED8B1]/30">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
-            <Icons.chart className="mr-2 h-4 w-4" />
-            Overview
+    <Tabs defaultValue="overview" className="space-y-3 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4">
+        <TabsList className="bg-[#FED8B1]/30 w-full sm:w-auto h-9 sm:h-10">
+          <TabsTrigger value="overview" className="flex-1 sm:flex-initial text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
+            <Icons.chart className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
-            <Icons.products className="mr-2 h-4 w-4" />
-            Products
+          <TabsTrigger value="products" className="flex-1 sm:flex-initial text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
+            <Icons.products className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>Products</span>
           </TabsTrigger>
-          <TabsTrigger value="orders" className="data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
-            <Icons.orders className="mr-2 h-4 w-4" />
-            Orders
+          <TabsTrigger value="orders" className="flex-1 sm:flex-initial text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#6F4E37]">
+            <Icons.orders className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>Orders</span>
           </TabsTrigger>
         </TabsList>
-        <ProductAnalyticsSelector
-          products={products.map(p => ({ 
-            id: p.id, 
-            name: p.slug,
-            hasAnalytics: Boolean(p.analyticsId)
-          }))}
-          selectedProductId={selectedProductId}
-        />
+        <div className="w-full sm:w-auto">
+          <ProductAnalyticsSelector
+            products={products.map(p => ({ 
+              id: p.id, 
+              name: p.slug,
+              hasAnalytics: Boolean(p.analyticsId)
+            }))}
+            selectedProductId={selectedProductId}
+          />
+        </div>
       </div>
       
-      <TabsContent value="overview" className="space-y-6">
+      <TabsContent value="overview" className="space-y-3 sm:space-y-6 px-0">
         <ErrorBoundary 
           fallback={<TabErrorFallback tabName="overview" />}
         >
@@ -82,7 +84,7 @@ export function DashboardTabs({ products, analytics, selectedProductId }: Dashbo
         </ErrorBoundary>
       </TabsContent>
 
-      <TabsContent value="products" className="space-y-6">
+      <TabsContent value="products" className="space-y-3 sm:space-y-6 px-0">
         <ErrorBoundary
           fallback={<TabErrorFallback tabName="products" />}
         >
@@ -92,7 +94,7 @@ export function DashboardTabs({ products, analytics, selectedProductId }: Dashbo
         </ErrorBoundary>
       </TabsContent>
 
-      <TabsContent value="orders" className="space-y-6">
+      <TabsContent value="orders" className="space-y-3 sm:space-y-6 px-0">
         <ErrorBoundary
           fallback={<TabErrorFallback tabName="orders" />}
         >

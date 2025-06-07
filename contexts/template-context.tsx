@@ -1,6 +1,137 @@
 "use client";
 
-import { createContext, useContext, useReducer, useEffect } from "react";
+import { createContext, useContext, useReducer, useEffect, useState } from "react";
+
+export const getDefaultTemplateData = (templateType: string = "modern") => {
+  if (templateType === "minimal") {
+    return {
+      navbar: {
+        title: "Your Brand",
+        logo: "",
+        links: [
+          { text: "Features", url: "#features" },
+          { text: "Benefits", url: "#benefits" },
+          { text: "Pricing", url: "#pricing" },
+          { text: "Buy Now", url: "#pricing", isButton: true }
+        ]
+      },
+      hero: {
+        title: "Your Amazing Product Name",
+        subtitle: "The solution you've been waiting for",
+        description: "Describe your product's main benefits and why customers need it",
+        cta: {
+          text: "Buy Now",
+          url: "#pricing"
+        },
+        image: "",
+        price: "$99",
+        originalPrice: ""
+      },
+      features: {
+        title: "Key Features",
+        subtitle: "Everything you need in one product",
+        items: [
+          {
+            title: "Premium Quality",
+            description: "Built with the highest quality materials and craftsmanship",
+            icon: "star"
+          },
+          {
+            title: "Easy to Use",
+            description: "Simple and intuitive design that anyone can use",
+            icon: "check"
+          },
+          {
+            title: "Fast Results",
+            description: "See results immediately with our proven solution",
+            icon: "zap"
+          }
+        ]
+      },
+      benefits: {
+        title: "Why Choose Our Product",
+        subtitle: "The benefits that make the difference",
+        items: [
+          {
+            title: "Save Time & Money",
+            description: "Our product helps you achieve more in less time while saving money on expensive alternatives.",
+            image: ""
+          },
+          {
+            title: "Proven Results",
+            description: "Thousands of satisfied customers have achieved amazing results with our product.",
+            image: ""
+          },
+          {
+            title: "Expert Support",
+            description: "Get help when you need it with our dedicated customer support team.",
+            image: ""
+          }
+        ]
+      },
+      pricing: {
+        title: "Get Your Product Today",
+        subtitle: "Limited time offer - don't miss out!",
+        price: "$99",
+        originalPrice: "",
+        currency: "$",
+        features: [
+          "Premium product included",
+          "Free shipping worldwide",
+          "30-day money-back guarantee",
+          "24/7 customer support",
+          "Lifetime updates"
+        ],
+        cta: {
+          text: "Buy Now",
+          url: "#"
+        },
+        guarantee: "30-day money-back guarantee"
+      },
+      testimonials: [
+        {
+          name: "Sarah Johnson",
+          role: "Verified Customer",
+          content: "This product exceeded my expectations! The quality is amazing and it works exactly as promised.",
+          image: "",
+          rating: 5
+        },
+        {
+          name: "Mike Chen",
+          role: "Verified Customer",
+          content: "Best purchase I've made this year. Highly recommend to anyone looking for a quality solution.",
+          image: "",
+          rating: 5
+        },
+        {
+          name: "Emily Davis",
+          role: "Verified Customer",
+          content: "Outstanding product and customer service. Will definitely buy again!",
+          image: "",
+          rating: 5
+        }
+      ],
+      cta: {
+        title: "Ready to Get Started?",
+        subtitle: "Join thousands of satisfied customers today",
+        buttonText: "Order Now",
+        buttonUrl: "#pricing"
+      },
+      brand: {
+        name: "Your Brand",
+        logo: ""
+      },
+      theme: {
+        primaryColor: "#2563eb",
+        secondaryColor: "#3b82f6"
+      }
+    };
+  }
+  
+  // Default modern template data
+  return defaultTemplateData;
+};
+
 export const defaultTemplateData = {
     navbar: {
       title: "Your Brand",
@@ -146,6 +277,7 @@ type Action =
   | { type: "UPDATE_THEME"; colors: { primary: string; secondary: string; text: string; accent: string } }
   | { type: "UPDATE_SEO"; data: any }
   | { type: "UPDATE_DOMAIN"; domain: string }
+  | { type: "UPDATE_LANGUAGE_PREFERENCE"; languagePreference: string }
   | { type: "LOAD_DATA"; data: any };
 
 interface State {
@@ -157,6 +289,7 @@ interface State {
     ogImage?: string;
   };
   domain: string;
+  languagePreference: string;
 }
 
 const initialState: State = {
@@ -168,6 +301,7 @@ const initialState: State = {
     ogImage: "",
   },
   domain: "",
+  languagePreference: "auto",
 };
 
 const colorPalettes = [
@@ -240,6 +374,10 @@ function templateReducer(state: State, action: Action): State {
       sessionStorage.setItem("domain", action.domain);
       return { ...state, domain: action.domain };
     }
+    case "UPDATE_LANGUAGE_PREFERENCE": {
+      sessionStorage.setItem("languagePreference", action.languagePreference);
+      return { ...state, languagePreference: action.languagePreference };
+    }
     case "LOAD_DATA": {
       return { ...state, ...action.data };
     }
@@ -252,33 +390,86 @@ const TemplateContext = createContext<{
   state: State;
   dispatch: React.Dispatch<Action>;
   colorPalettes: typeof colorPalettes;
+  saveChanges: () => Promise<void>;
+  isSaving: boolean;
+  productId?: string;
+  isEditMode: boolean;
 } | null>(null);
 
-export function TemplateProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(templateReducer, initialState);
+interface TemplateProviderProps {
+  children: React.ReactNode;
+  initialTemplateData?: any;
+  productId?: string;
+  updateFunction?: (productId: string, templateData: any) => Promise<{ success?: boolean; error?: string }>;
+}
+
+export function TemplateProvider({ 
+  children, 
+  initialTemplateData, 
+  productId,
+  updateFunction
+}: TemplateProviderProps) {
+  const [state, dispatch] = useReducer(templateReducer, {
+    ...initialState,
+    templateData: initialTemplateData || initialState.templateData
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const isEditMode = !!productId;
+
+  // Save changes to the product
+  const saveChanges = async () => {
+    if (!isEditMode || !productId || !updateFunction) return;
+    
+    setIsSaving(true);
+    try {
+      const result = await updateFunction(productId, state.templateData);
+      if (result && result.error) {
+        throw new Error(result.error);
+      }
+      // Success notification can be handled by the component
+    } catch (error) {
+      console.error("Error saving template changes:", error);
+      // Error notification can be handled by the component
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
+    // Only load from session storage if not in edit mode
+    if (!isEditMode) {
     // Load data from session storage on mount
     const loadedData = {
       templateData: JSON.parse(sessionStorage.getItem("templateData") || "null"),
       seo: JSON.parse(sessionStorage.getItem("seo") || "null"),
       domain: sessionStorage.getItem("domain"),
+      languagePreference: sessionStorage.getItem("languagePreference"),
     };
 
-    if (loadedData.templateData || loadedData.seo || loadedData.domain) {
+    if (loadedData.templateData || loadedData.seo || loadedData.domain || loadedData.languagePreference) {
       dispatch({
         type: "LOAD_DATA",
         data: {
           templateData: loadedData.templateData || initialState.templateData,
           seo: loadedData.seo || initialState.seo,
           domain: loadedData.domain || initialState.domain,
+          languagePreference: loadedData.languagePreference || initialState.languagePreference,
         },
       });
     }
-  }, []);
+    }
+  }, [isEditMode]);
 
   return (
-    <TemplateContext.Provider value={{ state, dispatch, colorPalettes }}>
+    <TemplateContext.Provider value={{ 
+      state, 
+      dispatch, 
+      colorPalettes, 
+      saveChanges, 
+      isSaving, 
+      productId,
+      isEditMode
+    }}>
       {children}
     </TemplateContext.Provider>
   );

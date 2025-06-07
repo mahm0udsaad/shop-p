@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LogOut, Menu, Plus, Settings, User } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -29,12 +27,9 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({
-  heading,
-  description,
   notifications = [],
   unreadCount = 0,
   userId,
-  children,
 }: DashboardHeaderProps) {
   const router = useRouter()
   const { user, profile, signOut } = useAuth()
@@ -54,7 +49,7 @@ export function DashboardHeader({
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-56">
+            <SheetContent side="left" className="w-64">
               <nav className="grid gap-4 text-lg font-medium">
                 <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold text-[#6F4E37]">
                   <span className="bg-gradient-to-r from-[#6F4E37] to-[#A67B5B] text-transparent bg-clip-text">
@@ -77,6 +72,17 @@ export function DashboardHeader({
                 <Link href="/dashboard/settings" className="hover:text-[#6F4E37] text-[#A67B5B] transition-colors">
                   Settings
                 </Link>
+                <div className="mt-4 pt-4 border-t border-[#A67B5B]/20">
+                  <Button 
+                    className="w-full gap-1 bg-[#6F4E37] hover:bg-[#A67B5B] text-white"
+                    onClick={() => {
+                      router.push("/dashboard/new");
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    New Product
+                  </Button>
+                </div>
               </nav>
             </SheetContent>
           </Sheet>

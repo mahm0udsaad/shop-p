@@ -7,7 +7,6 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useAuth } from "@/contexts/auth-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { DashboardErrorFallback } from "@/components/dashboard/dashboard-error-fallback";
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
 interface ClientDashboardProps {
   dashboardDataPromise: Promise<{
@@ -38,12 +37,14 @@ export function ClientDashboard({
         userId={user?.id}
       />
 
-      <ErrorBoundary fallback={<DashboardErrorFallback promise={dashboardDataPromise} />}>
-        <DashboardContent 
-          dashboardDataPromise={dashboardDataPromise}
-          selectedProductId={selectedProductId}
-        />
-      </ErrorBoundary>
+      <div className="container px-1.5 sm:px-4 py-2 sm:py-6 max-w-full sm:max-w-screen-2xl">
+        <ErrorBoundary fallback={<DashboardErrorFallback promise={dashboardDataPromise} />}>
+          <DashboardContent 
+            dashboardDataPromise={dashboardDataPromise}
+            selectedProductId={selectedProductId}
+          />
+        </ErrorBoundary>
+      </div>
     </main>
   );
 }

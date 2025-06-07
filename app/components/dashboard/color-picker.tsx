@@ -49,32 +49,32 @@ export function ColorPicker({ color, onChange, label }: ColorPickerProps) {
   };
   
   return (
-    <div className="space-y-1.5">
-      {label && <Label htmlFor="color-input">{label}</Label>}
-      <div className="flex items-center gap-2">
+    <div className="space-y-1 sm:space-y-1.5">
+      {label && <Label htmlFor="color-input" className="text-xs sm:text-sm">{label}</Label>}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="w-10 h-10 rounded-md border border-input flex items-center justify-center"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-md border border-input flex items-center justify-center"
               style={{ backgroundColor: currentColor }}
               aria-label="Pick a color"
             />
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-3">
-            <div className="grid grid-cols-5 gap-2">
+          <PopoverContent className="w-56 sm:w-64 p-2 sm:p-3" align="start">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
               {predefinedColors.map((c) => (
                 <button
                   key={c}
-                  className="w-8 h-8 rounded-md border border-input transition-all hover:scale-110"
+                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-md border border-input transition-all hover:scale-110"
                   style={{ backgroundColor: c }}
                   onClick={() => handleColorChange(c)}
                   aria-label={`Select color ${c}`}
                 />
               ))}
             </div>
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
               <div 
-                className="w-8 h-8 rounded-md border border-input" 
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-md border border-input flex-shrink-0" 
                 style={{ backgroundColor: currentColor }} 
               />
               <Input
@@ -82,7 +82,7 @@ export function ColorPicker({ color, onChange, label }: ColorPickerProps) {
                 type="text"
                 value={currentColor}
                 onChange={(e) => handleColorChange(e.target.value)}
-                className="font-mono"
+                className="font-mono text-xs sm:text-sm h-7 sm:h-9"
                 placeholder="#000000"
               />
             </div>
@@ -93,7 +93,7 @@ export function ColorPicker({ color, onChange, label }: ColorPickerProps) {
           type="text"
           value={currentColor}
           onChange={(e) => handleColorChange(e.target.value)}
-          className="font-mono"
+          className="font-mono text-xs sm:text-sm h-7 sm:h-9 min-w-0 flex-1"
           placeholder="#000000"
         />
       </div>

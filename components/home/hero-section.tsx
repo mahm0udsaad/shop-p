@@ -4,8 +4,11 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n/client"
 
 export function HeroSection() {
+  const { t, lng } = useTranslation()
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -33,11 +36,10 @@ export function HeroSection() {
           <motion.div className="flex flex-col items-center justify-center space-y-6" variants={fadeIn}>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl text-[#6F4E37]">
-                Transform Products Into Sales Machines
+                {t('home.hero.title')}
               </h1>
               <p className="text-xl text-[#A67B5B] max-w-2xl mx-auto">
-                Create professional product showcases with custom domains in minutes. Boost conversions with our proven
-                templates. No coding needed.
+                {t('home.hero.description')}
               </p>
             </div>
             <motion.div
@@ -47,12 +49,12 @@ export function HeroSection() {
               animate="visible"
             >
               <motion.div variants={fadeIn}>
-                <Link href="/dashboard/new">
+                <Link href={`/${lng}/dashboard/new`}>
                   <Button
                     size="lg"
                     className="gap-1.5 shadow-lg bg-[#ECB176] hover:bg-[#A67B5B] text-[#6F4E37] hover:scale-105 transition-transform px-8"
                   >
-                    Start Converting Today
+                    {t('home.hero.cta')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -60,7 +62,7 @@ export function HeroSection() {
             </motion.div>
             <div className="flex items-center gap-2 pt-6">
               <div className="flex items-center text-sm text-[#A67B5B] bg-white/50 px-4 py-2 rounded-full shadow-sm">
-                <span className="font-medium">Join 500+ businesses boosting sales</span>
+                <span className="font-medium">{t('home.trustedBrands.title')}</span>
               </div>
             </div>
           </motion.div>

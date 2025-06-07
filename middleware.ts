@@ -1,5 +1,36 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { match as matchLocale } from '@formatjs/intl-localematcher'
+import Negotiator from 'negotiator'
+
+const locales = ['en', 'ar']
+const defaultLocale = 'en'
+
+function getLocale(request: NextRequest) {
+  // Check if there's a locale in the pathname
+  const pathname = request.nextUrl.pathname
+  const pathnameIsMissingLocale = locales.every(
+    (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  )
+
+  if (!pathnameIsMissingLocale) {
+    // Extract locale from pathname
+    const segments = pathname.split('/')
+    return segments[1] || defaultLocale
+  }
+
+  // Use Accept-Language header to determine locale
+  const negotiatorHeaders: Record<string, string> = {}
+  request.headers.forEach((value, key) => (negotiatorHeaders[key] = value))
+
+  const languages = new Negotiator({ headers: negotiatorHeaders }).languages()
+  
+  try {
+    return matchLocale(languages, locales, defaultLocale)
+  } catch {
+    return defaultLocale
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl
@@ -14,6 +45,22 @@ export async function middleware(request: NextRequest) {
       url.pathname.startsWith('/api') ||
       url.pathname.includes('.')) {
     return NextResponse.next()
+  }
+
+  // Handle language routing for non-subdomain requests
+  if (!isSubdomain) {
+    const pathname = request.nextUrl.pathname
+    const pathnameIsMissingLocale = locales.every(
+      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+    )
+
+    // Redirect if there is no locale in the pathname
+    if (pathnameIsMissingLocale) {
+      const locale = getLocale(request)
+      return NextResponse.redirect(
+        new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, request.url)
+      )
+    }
   }
 
   // Handle subdomains
@@ -35,8 +82,6 @@ export async function middleware(request: NextRequest) {
       })
     }
     
-    // For specific paths on the subdomain, rewrite but preserve the path
-    const newUrl = new URL(`${url.pathname}`, request.url)
     
     // Add the subdomain header to all requests
     return NextResponse.next({
@@ -82,26 +127,32 @@ async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   
-  // Define protected and auth routes
-  const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup") ||
-    request.nextUrl.pathname.startsWith("/forgot-password") ||
-    request.nextUrl.pathname.startsWith("/reset-password")
+  // Extract locale from pathname for auth route checks
+  const pathname = request.nextUrl.pathname
+  const segments = pathname.split('/')
+  const locale = segments[1] 
+  const pathWithoutLocale = segments.slice(2).join('/')
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard")
+  // Define protected and auth routes (accounting for locale prefix)
+  const isAuthRoute =
+    pathWithoutLocale.startsWith("login") ||
+    pathWithoutLocale.startsWith("signup") ||
+    pathWithoutLocale.startsWith("forgot-password") ||
+    pathWithoutLocale.startsWith("reset-password")
+
+  const isProtectedRoute = pathWithoutLocale.startsWith("dashboard")
 
   // Redirect logic
   if (isProtectedRoute && !user) {
-    // Redirect unauthenticated users to login
-    const redirectUrl = new URL("/login", request.url)
+    // Redirect unauthenticated users to login (preserve locale)
+    const redirectUrl = new URL(`/${locale}/login`, request.url)
     redirectUrl.searchParams.set("redirect", request.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
   if (isAuthRoute && user) {
-    // Redirect authenticated users to dashboard
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    // Redirect authenticated users to dashboard (preserve locale)
+    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
   }
 
   return supabaseResponse

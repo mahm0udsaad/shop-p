@@ -6,6 +6,7 @@ import { Check, Store, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Icons as BaseIcons } from "@/components/icons"
 import { Sparkles } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Extend the base Icons with the menu icon we need
 const Icons = {
@@ -65,6 +66,7 @@ interface ModernTemplateProps {
         price: number;
         period: string;
         features: string[];
+        isFeatured: boolean;
       }>;
     };
     testimonials: Array<{
@@ -145,7 +147,9 @@ export function ModernTemplate({ landingPageData, isEditing, renderField }: Mode
               wrapField(`navbar.links.${index}`,
                 <div key={index}>
                   {link.isButton ? (
-                    <Button style={{ backgroundColor: secondaryColor }} className="text-white">
+                    <Button className={cn("text-white", {
+                      "bg-secondary hover:bg-secondary/90": true
+                    })} style={{ backgroundColor: primaryColor }}>
                       <a href={link.url}>{link.text}</a>
                     </Button>
                   ) : (
@@ -183,13 +187,13 @@ export function ModernTemplate({ landingPageData, isEditing, renderField }: Mode
               )}
               <div className="flex flex-col sm:flex-row gap-4">
                 {wrapField("hero.cta",
-                <Button size="lg" style={{ backgroundColor: secondaryColor }} className="text-white">
+                <Button size="lg" className={cn("text-white", {
+                  "bg-secondary hover:bg-secondary/90": true
+                })} style={{ backgroundColor: primaryColor }}>
                     <a href={hero.cta.url}>{hero.cta.text}</a>
                 </Button>
                 )}
-                <Button size="lg" variant="outline" className="border-gray-300">
-                  <a href="#features">Learn More</a>
-                </Button>
+               
               </div>
             </div>
             <div className="relative">
@@ -352,7 +356,12 @@ export function ModernTemplate({ landingPageData, isEditing, renderField }: Mode
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {pricing.plans.map((plan, index) => (
             wrapField(`pricing.plans.${index}`,
-              <div key={index} className="p-8 border rounded-lg bg-white">
+              <div key={index} className={`p-8 border rounded-lg bg-white ${plan.isFeatured ? 'ring-2 ring-primary relative' : ''}`}>
+                {plan.isFeatured && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white px-3 py-1 rounded-full text-sm">
+                    Most Popular
+                  </span>
+                )}
                 <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
                   <div className="mb-6">
                   <span className="text-4xl font-bold">{pricing.currency}{plan.price}</span>
@@ -368,7 +377,14 @@ export function ModernTemplate({ landingPageData, isEditing, renderField }: Mode
                     )
                     ))}
                   </ul>
-                <Button className="w-full" style={{ backgroundColor: secondaryColor }}>
+                <Button 
+                  className={cn("w-full text-white", {
+                    "bg-primary hover:bg-primary/90": plan.isFeatured,
+                    "bg-secondary hover:bg-secondary/90": !plan.isFeatured
+                  })}
+                  style={{ 
+                    backgroundColor:primaryColor                  }}
+                >
                   Choose {plan.name}
                 </Button>
               </div>

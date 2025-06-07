@@ -1,0 +1,563 @@
+{
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "templates": "Templates",
+    "products": "Products",
+    "orders": "Orders",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "profile": "Profile",
+    "login": "Login",
+    "logout": "Logout",
+    "sign_up": "Sign Up",
+    "get_started": "Get Started",
+    "help": "Help",
+    "docs": "Documentation",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "about": "About",
+    "features": "Features"
+  },
+  "home": {
+    "hero": {
+      "title": "Create Professional Product Showcases",
+      "subtitle": "Transform your products into stunning showcase pages with our platform. Get custom subdomains, beautiful templates, and order management - all in one place.",
+      "description": "Showcase your products with beautiful, conversion-focused landing pages. No coding required.",
+      "cta": "Start your free trial",
+      "cta_primary": "Get Started for Free",
+      "cta_secondary": "Explore Templates",
+      "watch_demo": "Watch Demo"
+    },
+    "trustedBrands": {
+      "title": "Trusted by 10,000+ Businesses",
+      "subtitle": "Join successful companies using our platform"
+    },
+    "features": {
+      "title": "Everything You Need to Showcase Your Products",
+      "subtitle": "Powerful features designed for modern businesses",
+      "feature1": {
+        "title": "AI-Powered Content Generation",
+        "description": "Let our AI create compelling product descriptions, features, and marketing copy for you."
+      },
+      "feature2": {
+        "title": "Professional Templates",
+        "description": "Choose from dozens of conversion-optimized templates designed by professionals."
+      },
+      "feature3": {
+        "title": "No-Code Customization",
+        "description": "Customize every aspect of your showcase without writing a single line of code."
+      },
+      "feature4": {
+        "title": "Mobile Responsive",
+        "description": "All showcases are automatically optimized for mobile, tablet, and desktop viewing."
+      },
+      "feature5": {
+        "title": "Analytics & Insights",
+        "description": "Track visitor behavior and conversion rates with built-in analytics."
+      },
+      "feature6": {
+        "title": "Custom Domain",
+        "description": "Use your own domain or subdomain for a professional appearance."
+      }
+    },
+    "templates": {
+      "title": "Choose Your Perfect Template",
+      "subtitle": "Professional designs for every industry",
+      "viewAll": "View All Templates",
+      "useTemplate": "Use This Template"
+    },
+    "multiProduct": {
+      "title": "Single Product or Full Store",
+      "subtitle": "Whether you're launching one product or building a complete store, we've got you covered",
+      "singleProduct": {
+        "title": "Single Product Showcase",
+        "description": "Perfect for launching individual products with focused, conversion-optimized pages."
+      },
+      "multiProduct": {
+        "title": "Multi-Product Store",
+        "description": "Build a complete online store with multiple products, categories, and shopping features."
+      }
+    },
+    "cta": {
+      "title": "Ready to showcase your products?",
+      "subtitle": "Join thousands of businesses already using our platform to sell more products",
+      "get_started": "Get started for free",
+      "view_pricing": "View pricing"
+    },
+    "pricing": {
+      "title": "Pricing Plans",
+      "single_page": {
+        "title": "Single Page",
+        "price": "$49",
+        "period": "/month",
+        "description": "Perfect for showcasing a single product with all its details.",
+        "features": {
+          "product_page": "1 product page",
+          "custom_domain": "Custom domain",
+          "basic_analytics": "Basic analytics",
+          "email_support": "Email support"
+        }
+      },
+      "multiple_pages": {
+        "title": "Multiple Pages",
+        "price": "$99",
+        "period": "/month",
+        "description": "Ideal for businesses with multiple products or product categories.",
+        "features": {
+          "product_pages": "Up to 10 product pages",
+          "custom_domain": "Custom domain",
+          "advanced_analytics": "Advanced analytics",
+          "priority_support": "Priority support",
+          "seo_optimization": "SEO optimization"
+        }
+      },
+      "custom": {
+        "title": "Custom",
+        "price": "Custom",
+        "period": "/project",
+        "description": "Tailored solutions for businesses with specific requirements.",
+        "features": {
+          "unlimited_pages": "Unlimited product pages",
+          "custom_design": "Custom design & development",
+          "advanced_integrations": "Advanced integrations",
+          "dedicated_support": "Dedicated support team",
+          "custom_features": "Custom features"
+        }
+      },
+      "get_started": "Get Started",
+      "contact_us": "Contact Us",
+      "loading": "Loading..."
+    },
+    "showcase": {
+      "title": "See What Our Customers Have Built",
+      "subtitle": "Real showcases created by real businesses using our platform",
+      "viewShowcase": "View Showcase",
+      "visitSite": "Visit Site"
+    },
+    "footer": {
+      "description": "The easiest way to create beautiful product showcases and landing pages.",
+      "product": "Product",
+      "features": "Features",
+      "templates": "Templates",
+      "pricing": "Pricing",
+      "company": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "contact": "Contact",
+      "support": "Support",
+      "documentation": "Documentation",
+      "help": "Help Center",
+      "status": "Status",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
+      "allRightsReserved": "All rights reserved."
+    }
+  },
+  "trusted_brands": {
+    "badge": "Trusted by brands worldwide",
+    "title": "The easiest way to showcase your products online",
+    "custom_subdomains": {
+      "title": "Custom Subdomains",
+      "description": "Get a unique URL like product-name.showcase.com for each of your products"
+    },
+    "professional_templates": {
+      "title": "Professional Templates",
+      "description": "Choose from multiple templates inspired by leading e-commerce platforms"
+    },
+    "order_management": {
+      "title": "Order Management",
+      "description": "Collect orders through a simple form and manage them in your dashboard"
+    }
+  },
+  "features": {
+    "badge": "Key Features",
+    "title": "Everything you need to succeed",
+    "subtitle": "Our platform provides all the tools you need to showcase your products professionally",
+    "live_preview": {
+      "title": "Live Template Preview",
+      "description": "See exactly how your product page will look as you customize it"
+    },
+    "mobile_optimization": {
+      "title": "Mobile Optimization",
+      "description": "All templates are fully responsive and look great on any device"
+    },
+    "seo_optimization": {
+      "title": "SEO Optimization",
+      "description": "Built-in SEO tools to help your products rank higher in search results"
+    },
+    "analytics_dashboard": {
+      "title": "Analytics Dashboard",
+      "description": "Track views, engagement, and orders for all your product pages"
+    }
+  },
+  "templates": {
+    "badge": "Premium Templates",
+    "title": "Professional Single Product Templates",
+    "subtitle": "Choose from our collection of professionally designed templates inspired by leading e-commerce platforms",
+    "modern": {
+      "title": "Modern Template",
+      "description": "Clean, minimalist design with focus on product details"
+    },
+    "gallery": {
+      "title": "Gallery Template",
+      "description": "Visual-focused design with large images and minimal text"
+    },
+    "minimal": {
+      "title": "Minimal Template",
+      "description": "Clean, text-focused template with a simple layout"
+    },
+    "live_preview": "Live Preview",
+    "use_template": "Use Template",
+    "templateControls": {
+      "tabs": {
+        "domain": "Domain",
+        "theme": "Theme",
+        "seo": "SEO",
+        "language": "Language"
+      },
+      "language": {
+        "label": "Language Preference",
+        "auto": "Automatic (based on visitor's browser)",
+        "ar": "Arabic only",
+        "en": "English only",
+        "help": "Choose which language your website should display. 'Automatic' will show the site in the visitor's preferred language if available."
+      },
+      "steps": {
+        "language": {
+          "title": "Choose Language",
+          "subtitle": "Select your website's language preference",
+          "description": "This determines which language your visitors will see"
+        },
+        "theme": {
+          "title": "Select Theme",
+          "subtitle": "Choose a color palette that matches your brand",
+          "description": "Pick from our carefully crafted color combinations"
+        },
+        "seo": {
+          "title": "SEO Settings",
+          "subtitle": "Optimize your website for search engines",
+          "description": "Help people find your website on Google and other search engines"
+        },
+        "domain": {
+          "title": "Choose Domain",
+          "subtitle": "Select your website address",
+          "description": "This is how people will find your website online"
+        },
+        "publishing": {
+          "title": "Publishing Your Website",
+          "subtitle": "Setting up your awesome website...",
+          "description": "We're creating your website and making it live on the internet!"
+        },
+        "success": {
+          "title": "🎉 Website Published!",
+          "subtitle": "Your website is now live and ready to share",
+          "description": "Congratulations! Your beautiful website is now available for everyone to see."
+        }
+      },
+      "buttons": {
+        "publish": "Publish Website",
+        "next": "Continue",
+        "back": "Back", 
+        "finish": "Finish",
+        "viewWebsite": "View Website",
+        "dashboard": "Go to Dashboard"
+      },
+      "publishing": {
+        "steps": [
+          "Setting up your domain...",
+          "Configuring your design...",
+          "Optimizing for search engines...",
+          "Making your website live...",
+          "Final touches..."
+        ]
+      }
+    }
+  },
+  "multi_product": {
+    "badge": "NEW FEATURE",
+    "title": "Multi-Product Store Templates",
+    "subtitle": "Showcase your entire product catalog with our powerful multi-product templates",
+    "multi_product_template": {
+      "title": "Multi-Product Template",
+      "description": "Complete store solution with product filtering and search"
+    },
+    "multi_product_grid": {
+      "title": "Multi-Product Grid",
+      "description": "Modern dark theme with grid layout for multiple products"
+    },
+    "multi_product_catalog": {
+      "title": "Multi-Product Catalog",
+      "description": "Clean, category-focused layout for product collections"
+    },
+    "live_preview": "Live Preview",
+    "use_template": "Use Template",
+    "view_all_templates": "View All Templates"
+  },
+  "cta": {
+    "title": "Ready to showcase your products?",
+    "subtitle": "Join thousands of businesses already using our platform to sell more products",
+    "get_started": "Get started for free",
+    "view_pricing": "View pricing"
+  },
+  "showcase_examples": {
+    "badge": "Showcase Examples",
+    "title": "Explore Stunning Product Showcases",
+    "subtitle": "Get inspired by these beautiful product showcases created by our users.",
+    "alt_texts": {
+      "ecommerce_store": "E-commerce store",
+      "product_showcase": "Product showcase",
+      "online_store": "Online store"
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "resetPassword": "Reset Password",
+    "emailSent": "Email sent successfully",
+    "invalidCredentials": "Invalid email or password",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "emailInvalid": "Please enter a valid email address",
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Enter your credentials to access your account",
+      "email": "Email",
+      "password": "Password",
+      "forgot_password": "Forgot password?",
+      "submit": "Sign In",
+      "no_account": "Don't have an account?",
+      "sign_up": "Sign up"
+    },
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Enter your information to get started",
+      "full_name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirm_password": "Confirm Password",
+      "submit": "Create Account",
+      "have_account": "Already have an account?",
+      "login": "Sign in"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "create_new": "Create New Product",
+    "my_products": "My Products",
+    "recent_orders": "Recent Orders",
+    "analytics": "Analytics",
+    "quick_stats": "Quick Stats",
+    "new": {
+      "navbar": {
+        "title": "Your Brand",
+        "links": {
+          "home": "Home",
+          "features": "Features",
+          "pricing": "Pricing",
+          "contact": "Contact",
+          "benefits": "Benefits",
+          "buy_now": "Buy Now"
+        }
+      },
+      "hero": {
+        "title": "Your Product Name",
+        "tagline": "A compelling tagline that captures attention",
+        "description": "Describe your product's main value proposition",
+        "cta": "Get Started"
+      },
+      "about": {
+        "title": "Designed for Performance",
+        "description": "Experience crystal-clear audio with our premium product. Designed for comfort and performance, it delivers exceptional quality for maximum satisfaction.",
+        "features": [
+          "High-quality materials",
+          "Long battery life",
+          "Ergonomic design",
+          "Premium sound quality"
+        ]
+      },
+      "whyChoose": {
+        "title": "Why Choose Us",
+        "subtitle": "Discover the benefits that set us apart",
+        "benefits": {
+          "title": "Why Choose Our Product",
+          "subtitle": "The benefits that make the difference",
+          "items": {
+            "0": {
+              "title": "Save Time & Money",
+              "description": "Our product helps you achieve more in less time while saving money on expensive alternatives."
+            },
+            "1": {
+              "title": "Proven Results",
+              "description": "Thousands of satisfied customers have achieved amazing results with our product."
+            },
+            "2": {
+              "title": "Expert Support",
+              "description": "Get help when you need it with our dedicated customer support team."
+            }
+          }
+        },
+        "features": {
+          "title": "Features",
+          "subtitle": "Everything you need to succeed",
+          "items": [
+            { "title": "Feature 1", "description": "Description of your first amazing feature" },
+            { "title": "Feature 2", "description": "Description of your second amazing feature" },
+            { "title": "Feature 3", "description": "Description of your third amazing feature" }
+          ]
+        }
+      },
+      "pricing": {
+        "title": "Pricing Plans",
+        "subtitle": "Choose the perfect plan for you",
+        "plans": [
+          {
+            "name": "Basic",
+            "features": [
+              "Basic feature 1",
+              "Basic feature 2",
+              "Basic feature 3"
+            ]
+          },
+          {
+            "name": "Pro",
+            "features": [
+              "Pro feature 1",
+              "Pro feature 2",
+              "Pro feature 3",
+              "Pro feature 4"
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "features": [
+              "Enterprise feature 1",
+              "Enterprise feature 2",
+              "Enterprise feature 3",
+              "Enterprise feature 4",
+              "Enterprise feature 5"
+            ]
+          }
+        ]
+      },
+      "testimonials": {
+        "title": "What Our Customers Say",
+        "subtitle": "Don't just take our word for it. Here's what our users think."
+      },
+      "features": {
+        "title": "Key Features",
+        "subtitle": "Everything you need in one product"
+      },
+      "addFeature": "Add Feature",
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "subtitle": "Find answers to common questions",
+        "items": [
+          {
+            "question": "What is your return policy?",
+            "answer": "We offer a 30-day money-back guarantee for all our products."
+          },
+          {
+            "question": "How do I get support?",
+            "answer": "Our support team is available 24/7 via email and chat."
+          },
+          {
+            "question": "Do you offer discounts?",
+            "answer": "Yes, we offer discounts for annual subscriptions and bulk purchases."
+          }
+        ]
+      },
+      "onboarding": {
+        "steps": [
+          { "title": "Choose Your Product Type", "description": "Are you selling a single product or multiple products?" },
+          { "title": "Select Your Template", "description": "Choose a beautiful template for your product showcase" },
+          { "title": "Customize Your Site", "description": "Make it yours with your content and branding" }
+        ],
+        "templates": [
+          { "name": "Modern", "description": "Feature-rich template with pricing, testimonials, and FAQ sections" },
+          { "name": "Product Landing", "description": "Perfect for showcasing a single product with features, benefits, and pricing" }
+        ],
+        "productType": {
+          "single": { "title": "Single Product", "description": "Perfect for showcasing and selling one main product or service" },
+          "multi": { "title": "Multi Product", "description": "Ideal for a store with multiple products or services" }
+        },
+        "ready": {
+          "title": "Ready to Customize!",
+          "description": "You're all set! Let's start customizing your {{productType}} with the {{template}} template."
+        },
+        "back": "Back",
+        "next": "Next",
+        "finish": "Start Customizing"
+      }
+    }
+  },
+  "products": {
+    "title": "Products",
+    "create": "Create Product",
+    "edit": "Edit Product",
+    "delete": "Delete Product",
+    "name": "Product Name",
+    "description": "Description",
+    "price": "Price",
+    "images": "Images",
+    "category": "Category",
+    "status": "Status",
+    "published": "Published",
+    "draft": "Draft"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "loading": "Loading...",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "view": "View",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "continue": "Continue",
+    "submit": "Submit",
+    "add": "Add",
+    "remove": "Remove",
+    "ok": "OK",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "placeholders": {
+    "searchProducts": "Search products...",
+    "enterProductName": "Enter product name",
+    "enterDescription": "Enter description",
+    "selectOption": "Select an option"
+  },
+  "messages": {
+    "productCreated": "Product created successfully",
+    "productUpdated": "Product updated successfully",
+    "productDeleted": "Product deleted successfully",
+    "changesSaved": "Changes saved successfully",
+    "errorOccurred": "An error occurred",
+    "noProductsFound": "No products found",
+    "confirmDelete": "Are you sure you want to delete this item?",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  }
+} 

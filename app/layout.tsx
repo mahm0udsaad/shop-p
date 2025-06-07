@@ -1,14 +1,15 @@
-import type React from "react"
-import "@/app/globals.css"
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/contexts/auth-context"
-import { Toaster } from "@/components/ui/toaster"
-import { getServerSession } from "@/lib/supabase/server"
-import { headers } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { Inter } from 'next/font/google'
+import { languages } from '@/lib/i18n'
+import '@/app/globals.css'
+import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/contexts/auth-context'
+import { Toaster } from '@/components/ui/toaster'
+import { StagewiseToolbar } from '@/components/stagewise-toolbar'
+import { getServerSession } from '@/lib/supabase/server'
+import { headers } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: "Product Showcase",
@@ -74,7 +75,20 @@ async function getTrackingId(host: string) {
   }
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export async function generateStaticParams() {
+  return languages.map((lng) => ({ lng }))
+}
+
+export default async function RootLayout({
+  children,
+  params
+}: {
+  children: React.ReactNode
+  params: Promise<{lng: string}>
+}) {
+  const { lng } = await params;
+  const direction = lng === 'ar' ? 'rtl' : 'ltr'
+
   // Get the session on the server
   const session = await getServerSession();
   
@@ -98,8 +112,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lng} dir={direction} suppressHydrationWarning>
       <head>
+        {/* Google Fonts for Arabic support */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&family=Noto+Kufi+Arabic:wght@100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" 
+          rel="stylesheet" 
+        />
         <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
         <script 
           defer 
@@ -108,11 +129,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {...dataAttributes}
         ></script>
       </head>
-      <body className={inter.className}>
+      <body   className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider initialSession={session}>
             {children}
             <Toaster />
+            <StagewiseToolbar />
           </AuthProvider>
         </ThemeProvider>
       </body>

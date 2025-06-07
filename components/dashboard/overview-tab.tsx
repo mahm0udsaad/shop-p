@@ -36,60 +36,64 @@ export function OverviewTab({ analytics }: OverviewTabProps) {
   const resolvedAnalytics = analytics instanceof Promise ? use(analytics) : analytics;
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <ErrorBoundary fallback={<TabErrorFallback tabName="metrics" />}>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <VisitorMetrics
             title="Total Views"
             value={resolvedAnalytics.totalViews}
             description="All product pages"
-            icon={<Icons.views className="h-4 w-4 text-[#6F4E37]" />}
+            icon={<Icons.views className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
+            compact={true}
           />
           <VisitorMetrics
             title="Total Orders"
             value={resolvedAnalytics.totalOrders}
             description="Across all products"
-            icon={<Icons.orders className="h-4 w-4 text-[#6F4E37]" />}
+            icon={<Icons.orders className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
+            compact={true}
           />
           <VisitorMetrics
             title="Conversion Rate"
             value={resolvedAnalytics.conversionRate}
             description="Orders per view"
-            icon={<Icons.conversion className="h-4 w-4 text-[#6F4E37]" />}
+            icon={<Icons.conversion className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
+            compact={true}
           />
           <VisitorMetrics
             title="Avg. Time on Site"
             value={resolvedAnalytics.averageTimeOnSite}
             description="Per visitor"
-            icon={<Icons.timeOnSite className="h-4 w-4 text-[#6F4E37]" />}
+            icon={<Icons.timeOnSite className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
+            compact={true}
           />
         </div>
       </ErrorBoundary>
 
       <ErrorBoundary fallback={<TabErrorFallback tabName="overview chart" />}>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Weekly Overview</CardTitle>
-              <CardDescription>Views and orders for the past 7 days</CardDescription>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-4">
+          <Card className="col-span-1 md:col-span-4">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Weekly Overview</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Views and orders for the past 7 days</CardDescription>
             </CardHeader>
-            <CardContent className="pl-2">
+            <CardContent className="p-2 sm:pl-2 sm:p-6 pt-0">
               <OverviewChart data={{
                 viewsOverTime: resolvedAnalytics.viewsOverTime,
                 ordersOverTime: resolvedAnalytics.ordersOverTime
               }} />
             </CardContent>
           </Card>
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>Latest orders across all products</CardDescription>
+          <Card className="col-span-1 md:col-span-3">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Recent Orders</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Latest orders across all products</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
               <RecentOrders orders={resolvedAnalytics.recentOrders} />
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full border-[#A67B5B]/30 text-[#6F4E37]" asChild>
+            <CardFooter className="p-3 sm:p-6 pt-0">
+              <Button variant="outline" className="w-full border-[#A67B5B]/30 text-[#6F4E37] text-xs sm:text-sm" asChild>
                 <Link href="/dashboard/orders">View all orders</Link>
               </Button>
             </CardFooter>
@@ -98,17 +102,17 @@ export function OverviewTab({ analytics }: OverviewTabProps) {
       </ErrorBoundary>
 
       <ErrorBoundary fallback={<TabErrorFallback tabName="visitor details" />}>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <MetricsCard
             title="Devices"
             description="Visitor device types"
             items={resolvedAnalytics.devices}
             totalViews={resolvedAnalytics.totalViews}
             iconMapper={(name) => {
-              if (name.toLowerCase().includes('desktop')) return <Laptop className="h-4 w-4 text-[#6F4E37]" />
-              if (name.toLowerCase().includes('mobile')) return <Smartphone className="h-4 w-4 text-[#6F4E37]" />
-              if (name.toLowerCase().includes('tablet')) return <Tablet className="h-4 w-4 text-[#6F4E37]" />
-              return <Laptop className="h-4 w-4 text-[#6F4E37]" />
+              if (name.toLowerCase().includes('desktop')) return <Laptop className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />
+              if (name.toLowerCase().includes('mobile')) return <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />
+              if (name.toLowerCase().includes('tablet')) return <Tablet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />
+              return <Laptop className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />
             }}
           />
 
@@ -117,7 +121,7 @@ export function OverviewTab({ analytics }: OverviewTabProps) {
             description="Most used browsers"
             items={resolvedAnalytics.browsers}
             totalViews={resolvedAnalytics.totalViews}
-            iconMapper={() => <Globe className="h-4 w-4 text-[#6F4E37]" />}
+            iconMapper={() => <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
           />
 
           <MetricsCard
@@ -125,7 +129,7 @@ export function OverviewTab({ analytics }: OverviewTabProps) {
             description="Visitor OS distribution"
             items={resolvedAnalytics.os}
             totalViews={resolvedAnalytics.totalViews}
-            iconMapper={() => <Laptop className="h-4 w-4 text-[#6F4E37]" />}
+            iconMapper={() => <Laptop className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
           />
 
           <MetricsCard
@@ -133,7 +137,7 @@ export function OverviewTab({ analytics }: OverviewTabProps) {
             description="Visitor locations"
             items={resolvedAnalytics.countries}
             totalViews={resolvedAnalytics.totalViews}
-            iconMapper={() => <Icons.globe className="h-4 w-4 text-[#6F4E37]" />}
+            iconMapper={() => <Icons.globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#6F4E37]" />}
           />
         </div>
       </ErrorBoundary>
@@ -156,26 +160,26 @@ interface MetricsCardProps {
 function MetricsCard({ title, description, items, totalViews, iconMapper }: MetricsCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+        <div className="space-y-3 sm:space-y-4">
           {items.map((item) => (
             <div key={item.name} className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-[#FED8B1]/30 flex items-center justify-center mr-3">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#FED8B1]/30 flex items-center justify-center mr-2 sm:mr-3">
                   {iconMapper(item.name)}
                 </div>
-                <span className="text-sm font-medium">{item.name}</span>
+                <span className="text-xs sm:text-sm font-medium">{item.name}</span>
               </div>
               <div className="flex items-center">
-                <span className="text-sm font-medium">{((item.value / totalViews) * 100).toFixed(1)}%</span>
-                <div className="ml-2 h-2 w-24 rounded-full bg-[#FED8B1]/30">
+                <span className="text-xs sm:text-sm font-medium">{((item.value / totalViews) * 100).toFixed(1)}%</span>
+                <div className="ml-2 h-1.5 sm:h-2 w-12 sm:w-24 rounded-full bg-[#FED8B1]/30">
                   <div 
-                    className="h-2 rounded-full bg-[#ECB176]" 
-                    style={{ width: `${(item.value / totalViews) * 100}%` }} 
+                    className="h-1.5 sm:h-2 rounded-full bg-[#ECB176]" 
+                    style={{ width: `${totalViews > 0 ? (item.value / totalViews) * 100 : 0}%` }} 
                   />
                 </div>
               </div>
@@ -194,16 +198,16 @@ interface TopReferrersCardProps {
 function TopReferrersCard({ referrers }: TopReferrersCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Top Referrers</CardTitle>
-        <CardDescription>Where your visitors are coming from</CardDescription>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-base sm:text-lg">Top Referrers</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Where your visitors are coming from</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+        <div className="space-y-3 sm:space-y-4">
           {referrers.map((referrer, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-[#FED8B1]/30 flex items-center justify-center mr-3">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#FED8B1]/30 flex items-center justify-center mr-2 sm:mr-3">
                   {referrer.referrer === "Google" && (
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path
@@ -280,13 +284,13 @@ function TopReferrersCard({ referrers }: TopReferrersCardProps) {
                     </svg>
                   )}
                 </div>
-                <span className="text-sm font-medium">{referrer.referrer}</span>
+                <span className="text-xs sm:text-sm font-medium">{referrer.referrer}</span>
               </div>
               <div className="flex items-center">
-                <span className="text-sm font-medium">{referrer.percentage}%</span>
-                <div className="ml-2 h-2 w-24 rounded-full bg-[#FED8B1]/30">
+                <span className="text-xs sm:text-sm font-medium">{referrer.percentage}%</span>
+                <div className="ml-2 h-1.5 sm:h-2 w-12 sm:w-24 rounded-full bg-[#FED8B1]/30">
                   <div 
-                    className="h-2 rounded-full bg-[#ECB176]" 
+                    className="h-1.5 sm:h-2 rounded-full bg-[#ECB176]" 
                     style={{ width: `${referrer.percentage}%` }} 
                   />
                 </div>
